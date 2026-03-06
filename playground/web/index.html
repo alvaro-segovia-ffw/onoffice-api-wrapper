@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Apartments API Playground</title>
+    <link rel="stylesheet" href="/playground/styles.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="card">
+        <h1>Apartments API Playground</h1>
+        <p class="sub">Enter token and secret, then call <code>GET /apartments</code>.</p>
+
+        <div class="grid">
+          <label>
+            API Base URL
+            <input id="baseUrl" type="text" value="http://localhost:3000" />
+          </label>
+
+          <label>
+            Token
+            <input id="token" type="text" placeholder="x-api-token" autocomplete="off" />
+          </label>
+
+          <label>
+            Secret
+            <input id="secret" type="password" placeholder="partner secret" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="btnFetch" type="button">Fetch Apartments JSON</button>
+        </div>
+      </section>
+
+      <section class="card result">
+        <div class="result-head">
+          <h2>Response</h2>
+          <span id="status" class="status">-</span>
+        </div>
+        <pre id="output">No calls yet.</pre>
+      </section>
+    </main>
+
+    <script src="/playground/app.js"></script>
+  </body>
+  </html>

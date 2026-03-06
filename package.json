@@ -1,16 +1,19 @@
 {
   "name": "onoffice-test",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "onOffice apartment export script and secured API",
+  "main": "export-apartments.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "export": "node export-apartments.js",
+    "api": "node api-server.js",
+    "test": "echo \"No tests configured\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "express": "^4.21.2",
     "node-fetch": "^3.3.2"
   }
 }
