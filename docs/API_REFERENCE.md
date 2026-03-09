@@ -19,20 +19,7 @@ https://api.your-domain.com
 All protected requests require:
 
 - `x-api-token`
-- `x-api-timestamp`
-- `x-api-signature`
-
-Signature format:
-
-```text
-signature = HMAC_SHA256_HEX(secret, "{timestamp}.{METHOD}.{PATH}.{rawBody}")
-```
-
-For `GET /apartments`:
-
-- `METHOD = GET`
-- `PATH = /apartments`
-- `rawBody = ""`
+- `x-api-secret`
 
 ## Endpoints
 
@@ -65,8 +52,7 @@ Protected endpoint. Performs a live sync from onOffice and returns normalized ap
 #### Headers
 
 - `x-api-token`: partner token
-- `x-api-timestamp`: Unix timestamp in seconds
-- `x-api-signature`: HMAC signature in hex
+- `x-api-secret`: partner secret
 
 #### Success Response `200`
 
@@ -88,7 +74,7 @@ Protected endpoint. Performs a live sync from onOffice and returns normalized ap
 ```json
 {
   "error": "Unauthorized",
-  "message": "Invalid signature."
+  "message": "Invalid credentials."
 }
 ```
 
@@ -138,15 +124,9 @@ You can override with `EXPORT_API_ENABLE_PLAYGROUND=true`.
 ```bash
 TOKEN="partner_token"
 SECRET="partner_secret"
-TS="$(date +%s)"
-METHOD="GET"
 PATH="/apartments"
-BODY=""
-BASE="${TS}.${METHOD}.${PATH}.${BODY}"
-SIG="$(printf '%s' "$BASE" | openssl dgst -sha256 -hmac "$SECRET" -hex | sed 's/^.* //')"
 
 curl -X GET "http://localhost:3000${PATH}" \
   -H "x-api-token: ${TOKEN}" \
-  -H "x-api-timestamp: ${TS}" \
-  -H "x-api-signature: ${SIG}"
+  -H "x-api-secret: ${SECRET}"
 ```

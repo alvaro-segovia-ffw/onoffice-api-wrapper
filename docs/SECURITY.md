@@ -8,11 +8,10 @@
 - Rotate secrets periodically.
 - Rotate immediately if exposed in screenshots, logs, or chats.
 
-## Request Signing
+## Credential Validation
 
-- Verify signature with constant-time comparison.
-- Enforce timestamp window (`EXPORT_API_TIME_SKEW_SEC`).
-- Keep server clock synchronized (NTP).
+- Validate token/secret with constant-time comparison.
+- Reject requests with missing auth headers.
 
 ## Access Control
 

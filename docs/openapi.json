@@ -116,12 +116,11 @@
     "/apartments": {
       "get": {
         "tags": ["Apartments"],
-        "summary": "Fetch apartments from onOffice (signed request required)",
+        "summary": "Fetch apartments from onOffice (token + secret required)",
         "security": [
           {
             "ApiToken": [],
-            "ApiTimestamp": [],
-            "ApiSignature": []
+            "ApiSecret": []
           }
         ],
         "parameters": [
@@ -132,18 +131,11 @@
             "schema": { "type": "string" }
           },
           {
-            "name": "x-api-timestamp",
+            "name": "x-api-secret",
             "in": "header",
             "required": true,
             "schema": { "type": "string" },
-            "description": "Unix timestamp in seconds"
-          },
-          {
-            "name": "x-api-signature",
-            "in": "header",
-            "required": true,
-            "schema": { "type": "string" },
-            "description": "hex HMAC-SHA256 of {timestamp}.{METHOD}.{PATH}.{rawBody}"
+            "description": "Partner secret associated to x-api-token"
           }
         ],
         "responses": {
@@ -218,15 +210,10 @@
         "in": "header",
         "name": "x-api-token"
       },
-      "ApiTimestamp": {
+      "ApiSecret": {
         "type": "apiKey",
         "in": "header",
-        "name": "x-api-timestamp"
-      },
-      "ApiSignature": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-api-signature"
+        "name": "x-api-secret"
       }
     },
     "schemas": {

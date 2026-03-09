@@ -9,7 +9,6 @@ Consume live apartment data from your wrapper API using partner credentials.
 - Base URL (for example `https://api.your-domain.com`)
 - `token`
 - `secret`
-- Signature rules
 - Endpoint path: `GET /apartments`
 
 ## Request Contract
@@ -17,40 +16,20 @@ Consume live apartment data from your wrapper API using partner credentials.
 Headers:
 
 - `x-api-token`
-- `x-api-timestamp`
-- `x-api-signature`
-
-Signature base string:
-
-```text
-{timestamp}.{METHOD}.{PATH}.{rawBody}
-```
-
-For this integration:
-
-- `METHOD = GET`
-- `PATH = /apartments`
-- `rawBody = ""`
+- `x-api-secret`
 
 ## Recommended Client Behavior
 
-1. Generate timestamp just before request.
-2. Generate signature with current timestamp.
-3. Retry on `409` with exponential backoff.
-4. Alert on repeated `401` or `500`.
-5. Keep clocks synchronized (NTP).
+1. Send `token` and `secret` as headers.
+2. Retry on `409` with exponential backoff.
+3. Alert on repeated `401` or `500`.
 
 ## Pseudocode
 
 ```text
-timestamp = unix_seconds_now()
-base = timestamp + ".GET./apartments."
-signature = hmac_sha256_hex(secret, base)
-
 GET /apartments
   x-api-token: token
-  x-api-timestamp: timestamp
-  x-api-signature: signature
+  x-api-secret: secret
 ```
 
 ## Response Handling
@@ -66,8 +45,6 @@ GET /apartments
 
 - `401 Unauthorized`:
   - wrong token/secret
-  - wrong signature base string
-  - timestamp skew too large
 - `409 Conflict`:
   - another sync in progress; retry after short delay
 - `500 LiveFetchFailed`:

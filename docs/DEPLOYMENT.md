@@ -142,4 +142,4 @@ Steps:
 3. Deploy.
 4. Verify:
    - `GET /health`
-   - signed `GET /apartments`
+   - authenticated `GET /apartments` (`x-api-token` + `x-api-secret`)
