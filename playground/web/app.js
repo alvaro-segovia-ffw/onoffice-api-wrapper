@@ -6,6 +6,7 @@ const els = {
   token: document.getElementById('token'),
   secret: document.getElementById('secret'),
   status: document.getElementById('status'),
+  apartmentCount: document.getElementById('apartmentCount'),
   output: document.getElementById('output'),
   btnFetch: document.getElementById('btnFetch'),
 };
@@ -23,6 +24,28 @@ function writeOutput(data) {
     return;
   }
   els.output.textContent = JSON.stringify(data, null, 2);
+}
+
+function setApartmentCount(payload) {
+  const apartments = Array.isArray(payload?.apartments)
+    ? payload.apartments
+    : Array.isArray(payload)
+      ? payload
+      : null;
+
+  if (!apartments) {
+    els.apartmentCount.textContent = 'Apartments: -';
+    return;
+  }
+
+  const ids = new Set(
+    apartments
+      .map((item) => String(item?.id ?? '').trim())
+      .filter((id) => id.length > 0)
+  );
+
+  const count = ids.size > 0 ? ids.size : apartments.length;
+  els.apartmentCount.textContent = `Apartments: ${count}`;
 }
 
 function normalizedBaseUrl() {
@@ -54,6 +77,7 @@ async function hmacHex(secret, message) {
 
 async function fetchApartments() {
   setStatus('loading...', null);
+  setApartmentCount(null);
   try {
     const { token, secret } = requireAuth();
     const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -74,9 +98,11 @@ async function fetchApartments() {
 
     const payload = await res.json().catch(() => ({}));
     writeOutput(payload);
+    setApartmentCount(payload);
     setStatus(`HTTP ${res.status}`, res.ok);
   } catch (err) {
     writeOutput({ error: err.message });
+    setApartmentCount(null);
     setStatus('error', false);
   }
 }

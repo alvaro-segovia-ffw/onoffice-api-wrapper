@@ -6,7 +6,7 @@
   "scripts": {
     "export": "node export-apartments.js",
     "api": "node api-server.js",
-    "test": "echo \"No tests configured\""
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

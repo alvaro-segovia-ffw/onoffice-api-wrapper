@@ -114,6 +114,15 @@ button:hover {
   color: var(--muted);
 }
 
+.count {
+  font-weight: 600;
+  color: var(--text);
+  background: #e6f4f1;
+  border: 1px solid #c7e7e1;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
 .status.ok {
   color: var(--ok);
 }

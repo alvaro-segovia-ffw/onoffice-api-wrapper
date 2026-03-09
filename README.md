@@ -114,6 +114,10 @@ Core variables:
 - `ONOFFICE_SECRET`: onOffice secret
 - `EXPORT_API_PORT`: API port (example: `3000`)
 - `EXPORT_API_TIME_SKEW_SEC`: allowed timestamp skew (example: `300`)
+- `EXPORT_API_ENABLE_PLAYGROUND`: optional (`true/false`), default `true` in non-production and `false` in production
+- `EXPORT_API_RATE_LIMIT_ENABLED`: optional (`true/false`), enables in-memory rate limiting on `GET /apartments`
+- `EXPORT_API_RATE_LIMIT_WINDOW_SEC`: optional positive integer window in seconds (default `60`)
+- `EXPORT_API_RATE_LIMIT_MAX_REQUESTS`: optional positive integer max requests per window (default `60`)
 - `EXPORT_API_USERS`: JSON allow-list of API users:
 
 ```env
@@ -143,12 +147,18 @@ Generates timestamped JSON files under `exports/`.
 ### Endpoint
 
 - `GET /apartments` (protected)
+- `GET /health` (unprotected health check)
 
 ### Behavior
 
 - Triggers live sync from onOffice on every call.
 - Returns transformed JSON data.
 - Returns `409` if another live sync is in progress.
+
+### Health Check
+
+- `GET /health`
+- Returns service status and uptime for load balancer / monitoring probes.
 
 ### Required Headers
 
@@ -205,6 +215,7 @@ curl -X GET "http://localhost:3000${PATH}" \
 
 - `401 Unauthorized`: invalid/missing auth headers or signature.
 - `409 Conflict`: another live sync is already running.
+- `429 TooManyRequests`: rate limit exceeded, retry after window reset.
 - `500 LiveFetchFailed`: onOffice call or mapping failed.
 
 ## Playground
@@ -218,6 +229,8 @@ Web UI for manual testing:
 3. Click `Fetch Apartments JSON`.
 
 More details in [playground/README.md](/Users/alvaro/workspace/onoffice-dataexport-script/playground/README.md).
+
+Note: in `NODE_ENV=production`, playground is disabled by default unless `EXPORT_API_ENABLE_PLAYGROUND=true`.
 
 ## Security Notes
 

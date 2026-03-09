@@ -19,6 +19,7 @@
 - `EXPORT_API_USERS` is your allow-list.
 - Remove inactive partners promptly.
 - Keep partner IDs descriptive (`partner-a`, `partner-b`, etc.).
+- Enable rate limiting for `/apartments` to reduce brute-force and abuse.
 
 ## Transport Security
 

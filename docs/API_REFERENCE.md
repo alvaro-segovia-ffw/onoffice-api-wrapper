@@ -36,6 +36,20 @@ For `GET /apartments`:
 
 ## Endpoints
 
+### `GET /health`
+
+Unprotected health endpoint for monitoring.
+
+#### Success Response `200`
+
+```json
+{
+  "status": "ok",
+  "uptimeSec": 123,
+  "now": "2026-03-09T12:00:00.000Z"
+}
+```
+
 ### `GET /apartments`
 
 Protected endpoint. Performs a live sync from onOffice and returns normalized apartments JSON.
@@ -79,6 +93,15 @@ Protected endpoint. Performs a live sync from onOffice and returns normalized ap
 }
 ```
 
+#### Error `429 TooManyRequests`
+
+```json
+{
+  "error": "TooManyRequests",
+  "message": "Rate limit exceeded. Max 60 requests per 60s."
+}
+```
+
 #### Error `500 LiveFetchFailed`
 
 ```json
@@ -88,9 +111,19 @@ Protected endpoint. Performs a live sync from onOffice and returns normalized ap
 }
 ```
 
+When rate limiting is enabled, responses also include:
+
+- `x-ratelimit-limit`
+- `x-ratelimit-remaining`
+- `x-ratelimit-reset`
+- `retry-after` (on `429`)
+
 ### `GET /playground`
 
 Unprotected local test UI.
+
+By default this route is disabled when `NODE_ENV=production`.
+You can override with `EXPORT_API_ENABLE_PLAYGROUND=true`.
 
 ## Example Request (bash)
 

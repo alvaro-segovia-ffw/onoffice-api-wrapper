@@ -10,8 +10,32 @@ loadDotEnv(path.join(process.cwd(), '.env'));
 
 const PORT = Number(process.env.EXPORT_API_PORT || 3000);
 const MAX_TIME_SKEW_SEC = Number(process.env.EXPORT_API_TIME_SKEW_SEC || 300);
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 let isLiveRequestRunning = false;
+
+function parseEnvBool(raw, fallback) {
+  if (raw === undefined) return fallback;
+  const normalized = String(raw).trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function parseEnvPositiveInt(raw, fallback) {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) return fallback;
+  return n;
+}
+
+const ENABLE_PLAYGROUND = parseEnvBool(process.env.EXPORT_API_ENABLE_PLAYGROUND, !IS_PRODUCTION);
+const RATE_LIMIT_ENABLED = parseEnvBool(process.env.EXPORT_API_RATE_LIMIT_ENABLED, true);
+const RATE_LIMIT_WINDOW_SEC = parseEnvPositiveInt(process.env.EXPORT_API_RATE_LIMIT_WINDOW_SEC, 60);
+const RATE_LIMIT_MAX_REQUESTS = parseEnvPositiveInt(
+  process.env.EXPORT_API_RATE_LIMIT_MAX_REQUESTS,
+  60
+);
+const rateLimitState = new Map();
 
 function parseUsers(raw) {
   if (!raw) {
@@ -107,15 +131,66 @@ function authMiddleware(req, res, next) {
   return next();
 }
 
+function buildRateLimitKey(req) {
+  const token = String(req.header('x-api-token') || '').trim();
+  if (token) return `token:${token}`;
+  return `ip:${req.ip || 'unknown'}`;
+}
+
+function rateLimitMiddleware(req, res, next) {
+  if (!RATE_LIMIT_ENABLED) return next();
+
+  const nowMs = Date.now();
+  const windowMs = RATE_LIMIT_WINDOW_SEC * 1000;
+  const windowStart = Math.floor(nowMs / windowMs) * windowMs;
+  const key = buildRateLimitKey(req);
+  const current = rateLimitState.get(key);
+
+  const entry =
+    current && current.windowStart === windowStart
+      ? current
+      : { windowStart, count: 0 };
+
+  entry.count += 1;
+  rateLimitState.set(key, entry);
+
+  const remaining = Math.max(0, RATE_LIMIT_MAX_REQUESTS - entry.count);
+  const resetSec = Math.ceil((windowStart + windowMs - nowMs) / 1000);
+
+  res.setHeader('x-ratelimit-limit', String(RATE_LIMIT_MAX_REQUESTS));
+  res.setHeader('x-ratelimit-remaining', String(remaining));
+  res.setHeader('x-ratelimit-reset', String(resetSec));
+
+  if (entry.count > RATE_LIMIT_MAX_REQUESTS) {
+    res.setHeader('retry-after', String(resetSec));
+    return res.status(429).json({
+      error: 'TooManyRequests',
+      message: `Rate limit exceeded. Max ${RATE_LIMIT_MAX_REQUESTS} requests per ${RATE_LIMIT_WINDOW_SEC}s.`,
+    });
+  }
+
+  return next();
+}
+
 const app = express();
 const playgroundDir = path.join(process.cwd(), 'playground', 'web');
 
-app.use('/playground', express.static(playgroundDir));
-app.get('/playground', (_req, res) => {
-  res.sendFile(path.join(playgroundDir, 'index.html'));
+if (ENABLE_PLAYGROUND) {
+  app.use('/playground', express.static(playgroundDir));
+  app.get('/playground', (_req, res) => {
+    res.sendFile(path.join(playgroundDir, 'index.html'));
+  });
+}
+
+app.get('/health', (_req, res) => {
+  return res.json({
+    status: 'ok',
+    uptimeSec: Math.floor(process.uptime()),
+    now: new Date().toISOString(),
+  });
 });
 
-app.get('/apartments', authMiddleware, async (req, res) => {
+app.get('/apartments', rateLimitMiddleware, authMiddleware, async (req, res) => {
   if (isLiveRequestRunning) {
     return res.status(409).json({
       error: 'Conflict',
@@ -153,4 +228,12 @@ app.get('/apartments', authMiddleware, async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Export API listening on http://localhost:${PORT}`);
+  console.log(
+    `Playground ${ENABLE_PLAYGROUND ? 'enabled' : 'disabled'} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
+  );
+  console.log(
+    `Rate limiting ${
+      RATE_LIMIT_ENABLED ? `enabled (${RATE_LIMIT_MAX_REQUESTS}/${RATE_LIMIT_WINDOW_SEC}s)` : 'disabled'
+    }`
+  );
 });
