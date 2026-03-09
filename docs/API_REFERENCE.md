@@ -50,6 +50,14 @@ Unprotected health endpoint for monitoring.
 }
 ```
 
+### `GET /openapi.json`
+
+Returns the OpenAPI specification as JSON.
+
+### `GET /docs`
+
+Returns interactive Swagger UI for this API.
+
 ### `GET /apartments`
 
 Protected endpoint. Performs a live sync from onOffice and returns normalized apartments JSON.

@@ -13,6 +13,7 @@ Node.js API wrapper for onOffice that fetches live apartment data, normalizes it
 - [Environment Variables](#environment-variables)
 - [Run Modes](#run-modes)
 - [API](#api)
+- [Swagger](#swagger)
 - [Playground](#playground)
 - [Security Notes](#security-notes)
 - [Deployment](#deployment)
@@ -148,6 +149,8 @@ Generates timestamped JSON files under `exports/`.
 
 - `GET /apartments` (protected)
 - `GET /health` (unprotected health check)
+- `GET /openapi.json` (OpenAPI spec)
+- `GET /docs` (Swagger UI)
 
 ### Behavior
 
@@ -159,6 +162,11 @@ Generates timestamped JSON files under `exports/`.
 
 - `GET /health`
 - Returns service status and uptime for load balancer / monitoring probes.
+
+## Swagger
+
+- `GET /openapi.json`: raw OpenAPI spec
+- `GET /docs`: interactive Swagger UI
 
 ### Required Headers
 

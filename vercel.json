@@ -2,6 +2,8 @@
   "version": 2,
   "rewrites": [
     { "source": "/health", "destination": "/api/index" },
+    { "source": "/openapi.json", "destination": "/api/index" },
+    { "source": "/docs", "destination": "/api/index" },
     { "source": "/apartments", "destination": "/api/index" },
     { "source": "/playground", "destination": "/api/index" },
     { "source": "/playground/:path*", "destination": "/api/index" },

@@ -1,0 +1,301 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "onoffice-api-wrapper",
+    "version": "1.0.0",
+    "description": "API wrapper for onOffice apartment data"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local"
+    },
+    {
+      "url": "https://onoffice-api-wrapper.vercel.app",
+      "description": "Production (example)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "System",
+      "description": "Operational endpoints"
+    },
+    {
+      "name": "Apartments",
+      "description": "Apartment export endpoints"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Service info",
+        "responses": {
+          "200": {
+            "description": "Service metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": { "type": "string" },
+                    "status": { "type": "string" },
+                    "endpoints": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "playground": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "ok" },
+                    "uptimeSec": { "type": "integer", "example": 123 },
+                    "now": { "type": "string", "format": "date-time" }
+                  },
+                  "required": ["status", "uptimeSec", "now"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "tags": ["System"],
+        "summary": "OpenAPI specification",
+        "responses": {
+          "200": {
+            "description": "OpenAPI document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docs": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Swagger UI",
+        "responses": {
+          "200": {
+            "description": "Interactive API documentation",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apartments": {
+      "get": {
+        "tags": ["Apartments"],
+        "summary": "Fetch apartments from onOffice (signed request required)",
+        "security": [
+          {
+            "ApiToken": [],
+            "ApiTimestamp": [],
+            "ApiSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-api-token",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "x-api-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Unix timestamp in seconds"
+          },
+          {
+            "name": "x-api-signature",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "hex HMAC-SHA256 of {timestamp}.{METHOD}.{PATH}.{rawBody}"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Apartments payload",
+            "headers": {
+              "x-data-source": {
+                "schema": { "type": "string" },
+                "description": "Data source marker"
+              },
+              "x-ratelimit-limit": {
+                "schema": { "type": "string" }
+              },
+              "x-ratelimit-remaining": {
+                "schema": { "type": "string" }
+              },
+              "x-ratelimit-reset": {
+                "schema": { "type": "string" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apartments": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Apartment" }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "requestedBy": { "type": "string" },
+                        "count": { "type": "integer" },
+                        "startedAt": { "type": "string", "format": "date-time" },
+                        "finishedAt": { "type": "string", "format": "date-time" },
+                        "durationMs": { "type": "integer" }
+                      },
+                      "required": ["requestedBy", "count", "startedAt", "finishedAt", "durationMs"]
+                    }
+                  },
+                  "required": ["apartments", "meta"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "409": {
+            "description": "Conflict: sync already running"
+          },
+          "429": {
+            "description": "Too many requests",
+            "headers": {
+              "retry-after": {
+                "schema": { "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream/onOffice error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-token"
+      },
+      "ApiTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-timestamp"
+      },
+      "ApiSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-signature"
+      }
+    },
+    "schemas": {
+      "Apartment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "address": {
+            "type": "object",
+            "properties": {
+              "buildingNumber": { "type": ["string", "null"] },
+              "streetName": { "type": ["string", "null"] },
+              "neighborhood": {
+                "oneOf": [
+                  { "type": "array", "items": { "type": "string" } },
+                  { "type": "null" }
+                ]
+              },
+              "city": { "type": ["string", "null"] },
+              "zipCode": { "type": ["string", "null"] }
+            }
+          },
+          "roomsTotal": { "type": ["number", "null"] },
+          "bedrooms": { "type": ["number", "null"] },
+          "bathrooms": { "type": ["number", "null"] },
+          "areaSqft": { "type": ["number", "null"] },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": { "type": "string" },
+                "type": { "type": ["string", "null"] },
+                "title": { "type": ["string", "null"] },
+                "originalname": { "type": ["string", "null"] },
+                "modified": { "type": ["number", "null"] }
+              }
+            }
+          },
+          "features": {
+            "type": "object",
+            "properties": {
+              "elevator": { "type": "array", "items": { "type": "string" } },
+              "balcony": { "type": "boolean" },
+              "furnished": { "type": ["boolean", "null"] }
+            }
+          },
+          "description": { "type": ["string", "null"] },
+          "locationDescription": { "type": ["string", "null"] },
+          "equipmentDescription": { "type": ["string", "null"] },
+          "availability": {
+            "type": "object",
+            "properties": {
+              "from": { "type": ["string", "null"] },
+              "until": { "type": ["string", "null"] }
+            }
+          },
+          "rent": {
+            "type": "object",
+            "properties": {
+              "warmRent": { "type": ["number", "null"] },
+              "coldRent": { "type": ["number", "null"] },
+              "currency": { "type": "string", "example": "EUR" }
+            }
+          },
+          "deposit": { "type": ["string", "null"] },
+          "floorLevel": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
