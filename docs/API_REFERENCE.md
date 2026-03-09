@@ -11,7 +11,7 @@ http://localhost:3000
 Production example:
 
 ```text
-https://api.your-domain.com
+https://onoffice-api-wrapper.vercel.app
 ```
 
 ## Authentication
