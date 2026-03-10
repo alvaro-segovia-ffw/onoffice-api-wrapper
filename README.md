@@ -1,6 +1,6 @@
-# onoffice-test
+# Hope Apartments API
 
-Node.js API wrapper for onOffice that fetches live apartment data, normalizes it, and returns JSON to authorized partner clients.
+Hope Apartments API is a Node.js service that fetches live apartment data from onOffice, normalizes it, and returns JSON to authorized partner clients.
 
 ## Table of Contents
 
@@ -13,6 +13,7 @@ Node.js API wrapper for onOffice that fetches live apartment data, normalizes it
 - [Environment Variables](#environment-variables)
 - [Run Modes](#run-modes)
 - [API](#api)
+- [Swagger](#swagger)
 - [Playground](#playground)
 - [Security Notes](#security-notes)
 - [Deployment](#deployment)
@@ -148,6 +149,8 @@ Generates timestamped JSON files under `exports/`.
 
 - `GET /apartments` (protected)
 - `GET /health` (unprotected health check)
+- `GET /openapi.json` (OpenAPI spec)
+- `GET /docs` (Swagger UI)
 
 ### Behavior
 
@@ -159,6 +162,13 @@ Generates timestamped JSON files under `exports/`.
 
 - `GET /health`
 - Returns service status and uptime for load balancer / monitoring probes.
+
+## Swagger
+
+- `GET /openapi.json`: raw OpenAPI document
+- `GET /docs`: interactive Swagger UI
+
+Swagger documents the current HMAC header contract, but it does not generate signatures for you. You still need to compute `x-api-signature` client-side.
 
 ### Required Headers
 

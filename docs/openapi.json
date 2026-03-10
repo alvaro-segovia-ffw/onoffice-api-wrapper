@@ -1,0 +1,469 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Hope Apartments API",
+    "version": "1.0.0",
+    "description": "Swagger documentation for the Hope Apartments API. The protected apartments endpoint uses HMAC request signing with x-api-token, x-api-timestamp, and x-api-signature headers."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "System",
+      "description": "Operational endpoints"
+    },
+    {
+      "name": "Apartments",
+      "description": "Apartment export endpoints"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "uptimeSec": {
+                      "type": "integer",
+                      "example": 123
+                    },
+                    "now": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["status", "uptimeSec", "now"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "tags": ["System"],
+        "summary": "OpenAPI specification",
+        "responses": {
+          "200": {
+            "description": "OpenAPI document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docs": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Swagger UI",
+        "responses": {
+          "200": {
+            "description": "Interactive API documentation",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/apartments": {
+      "get": {
+        "tags": ["Apartments"],
+        "summary": "Fetch live apartment data",
+        "description": "Returns normalized apartments from onOffice. This endpoint requires HMAC request signing.\n\nSignature base string: `{timestamp}.{METHOD}.{PATH}.{rawBody}`\n\nFor `GET /apartments`, use `METHOD=GET`, `PATH=/apartments`, and an empty raw body.",
+        "parameters": [
+          {
+            "name": "x-api-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Partner token"
+          },
+          {
+            "name": "x-api-timestamp",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Unix timestamp in seconds"
+          },
+          {
+            "name": "x-api-signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Hex-encoded HMAC-SHA256 of `{timestamp}.{METHOD}.{PATH}.{rawBody}` using the partner secret"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Normalized apartment payload",
+            "headers": {
+              "x-data-source": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Data source marker",
+                "example": "live-onoffice"
+              },
+              "x-ratelimit-limit": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-ratelimit-remaining": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "x-ratelimit-reset": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "apartments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Apartment"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": ["apartments", "meta"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another sync is already running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "retry-after": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Upstream fetch or mapping failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Apartment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "123"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "roomsTotal": {
+            "type": "number",
+            "nullable": true,
+            "example": 3
+          },
+          "bedrooms": {
+            "type": "number",
+            "nullable": true,
+            "example": 2
+          },
+          "bathrooms": {
+            "type": "number",
+            "nullable": true,
+            "example": 1
+          },
+          "areaSqft": {
+            "type": "number",
+            "nullable": true,
+            "example": 538.19
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Photo"
+            }
+          },
+          "features": {
+            "$ref": "#/components/schemas/Features"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "locationDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "equipmentDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "rent": {
+            "$ref": "#/components/schemas/Rent"
+          },
+          "deposit": {
+            "type": "string",
+            "nullable": true
+          },
+          "floorLevel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "address",
+          "roomsTotal",
+          "bedrooms",
+          "bathrooms",
+          "areaSqft",
+          "photos",
+          "features",
+          "description",
+          "locationDescription",
+          "equipmentDescription",
+          "availability",
+          "rent",
+          "deposit",
+          "floorLevel"
+        ]
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "buildingNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "streetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "neighborhood": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "city": {
+            "type": "string",
+            "nullable": true
+          },
+          "zipCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["buildingNumber", "streetName", "neighborhood", "city", "zipCode"]
+      },
+      "Photo": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalname": {
+            "type": "string",
+            "nullable": true
+          },
+          "modified": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "required": ["url", "type", "title", "originalname", "modified"]
+      },
+      "Features": {
+        "type": "object",
+        "properties": {
+          "elevator": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "balcony": {
+            "type": "boolean"
+          },
+          "furnished": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": ["elevator", "balcony", "furnished"]
+      },
+      "Availability": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-05-01"
+          },
+          "until": {
+            "type": "string",
+            "nullable": true,
+            "example": "2026-12-31"
+          }
+        },
+        "required": ["from", "until"]
+      },
+      "Rent": {
+        "type": "object",
+        "properties": {
+          "warmRent": {
+            "type": "number",
+            "nullable": true,
+            "example": 1200
+          },
+          "coldRent": {
+            "type": "number",
+            "nullable": true,
+            "example": 1000
+          },
+          "currency": {
+            "type": "string",
+            "example": "EUR"
+          }
+        },
+        "required": ["warmRent", "coldRent", "currency"]
+      },
+      "ResponseMeta": {
+        "type": "object",
+        "properties": {
+          "requestedBy": {
+            "type": "string",
+            "example": "partner-a"
+          },
+          "count": {
+            "type": "integer",
+            "example": 84
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationMs": {
+            "type": "integer",
+            "example": 3000
+          }
+        },
+        "required": ["requestedBy", "count", "startedAt", "finishedAt", "durationMs"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["error", "message"]
+      }
+    }
+  }
+}

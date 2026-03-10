@@ -174,6 +174,9 @@ function rateLimitMiddleware(req, res, next) {
 
 const app = express();
 const playgroundDir = path.join(process.cwd(), 'playground', 'web');
+const docsDir = path.join(process.cwd(), 'docs');
+const swaggerUiPath = path.join(docsDir, 'swagger', 'index.html');
+const openApiSpecPath = path.join(docsDir, 'openapi.json');
 
 if (ENABLE_PLAYGROUND) {
   app.use('/playground', express.static(playgroundDir));
@@ -181,6 +184,15 @@ if (ENABLE_PLAYGROUND) {
     res.sendFile(path.join(playgroundDir, 'index.html'));
   });
 }
+
+app.get('/openapi.json', (_req, res) => {
+  res.type('application/json');
+  return res.sendFile(openApiSpecPath);
+});
+
+app.get('/docs', (_req, res) => {
+  return res.sendFile(swaggerUiPath);
+});
 
 app.get('/health', (_req, res) => {
   return res.json({
@@ -227,7 +239,7 @@ app.get('/apartments', rateLimitMiddleware, authMiddleware, async (req, res) => 
 });
 
 app.listen(PORT, () => {
-  console.log(`Export API listening on http://localhost:${PORT}`);
+  console.log(`Hope Apartments API listening on http://localhost:${PORT}`);
   console.log(
     `Playground ${ENABLE_PLAYGROUND ? 'enabled' : 'disabled'} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
   );
