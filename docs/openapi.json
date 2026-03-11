@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://onoffice-api-wrapper-production.up.railway.app",
+      "url": "https://api.hope-apartments.de",
       "description": "Railway development"
     }
   ],
