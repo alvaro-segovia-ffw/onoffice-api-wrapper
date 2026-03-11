@@ -26,7 +26,6 @@ Optional variables:
 
 ```env
 ONOFFICE_URL=https://api.onoffice.de/api/stable/api.php
-EXPORT_API_TIME_SKEW_SEC=300
 EXPORT_API_ENABLE_PLAYGROUND=false
 EXPORT_API_RATE_LIMIT_ENABLED=true
 EXPORT_API_RATE_LIMIT_WINDOW_SEC=60
@@ -55,7 +54,7 @@ npm start
 
 - `GET /health` returns `200`
 - `GET /docs` loads Swagger UI
-- Signed `GET /apartments` succeeds with a configured partner token/secret
+- `GET /apartments` succeeds with a configured partner token/secret
 - `/playground` is disabled in production unless you explicitly enable it
 
 ## Custom Domain

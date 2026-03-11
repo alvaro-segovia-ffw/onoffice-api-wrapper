@@ -1,4 +1,3 @@
-/* global crypto */
 'use strict';
 
 const els = {
@@ -61,38 +60,18 @@ function requireAuth() {
   return { token, secret };
 }
 
-async function hmacHex(secret, message) {
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 async function fetchApartments() {
   setStatus('loading...', null);
   setApartmentCount(null);
   try {
     const { token, secret } = requireAuth();
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const method = 'GET';
     const pathName = '/apartments';
-    const body = '';
-    const base = `${timestamp}.${method}.${pathName}.${body}`;
-    const signature = await hmacHex(secret, base);
 
     const res = await fetch(`${normalizedBaseUrl()}${pathName}`, {
-      method,
+      method: 'GET',
       headers: {
         'x-api-token': token,
-        'x-api-timestamp': timestamp,
-        'x-api-signature': signature,
+        'x-api-secret': secret,
       },
     });
 

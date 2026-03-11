@@ -38,16 +38,15 @@ Each request performs a live sync from onOffice and returns transformed apartmen
 
 - Live fetch from onOffice on every request.
 - Consistent transformed JSON output.
-- Per-user authentication with HMAC signature.
-- Timestamp validation window to reduce replay risk.
+- Per-user authentication with token + secret.
 - Concurrency protection (single live sync at a time).
 - Web playground to test token/secret and inspect responses.
 - Optional CLI export script that writes JSON files to `exports/`.
 
 ## Architecture
 
-1. Client calls `GET /apartments` with signed headers.
-2. API validates `x-api-token`, `x-api-timestamp`, `x-api-signature`.
+1. Client calls `GET /apartments` with auth headers.
+2. API validates `x-api-token` and `x-api-secret`.
 3. API queries onOffice (estates + pictures).
 4. Data is normalized and merged into a single apartments array.
 5. API returns:
@@ -114,7 +113,6 @@ Core variables:
 - `ONOFFICE_TOKEN`: onOffice token
 - `ONOFFICE_SECRET`: onOffice secret
 - `EXPORT_API_PORT`: API port (example: `3000`)
-- `EXPORT_API_TIME_SKEW_SEC`: allowed timestamp skew (example: `300`)
 - `EXPORT_API_ENABLE_PLAYGROUND`: optional (`true/false`), default `true` in non-production and `false` in production
 - `EXPORT_API_RATE_LIMIT_ENABLED`: optional (`true/false`), enables in-memory rate limiting on `GET /apartments`
 - `EXPORT_API_RATE_LIMIT_WINDOW_SEC`: optional positive integer window in seconds (default `60`)
@@ -168,42 +166,23 @@ Generates timestamped JSON files under `exports/`.
 - `GET /openapi.json`: raw OpenAPI document
 - `GET /docs`: interactive Swagger UI
 
-Swagger documents the current HMAC header contract, but it does not generate signatures for you. You still need to compute `x-api-signature` client-side.
+Swagger documents the current header contract for direct authentication with token + secret.
 
 ### Required Headers
 
 - `x-api-token`
-- `x-api-timestamp` (Unix seconds)
-- `x-api-signature` (hex HMAC-SHA256)
-
-### Signature Base String
-
-```text
-{timestamp}.{METHOD}.{PATH}.{rawBody}
-```
-
-For this endpoint:
-
-- `METHOD=GET`
-- `PATH=/apartments`
-- `rawBody=` (empty string)
+- `x-api-secret`
 
 ### Curl Example
 
 ```bash
 TOKEN="partner_token"
 SECRET="partner_secret"
-TS="$(date +%s)"
-METHOD="GET"
 PATH="/apartments"
-BODY=''
-BASE="${TS}.${METHOD}.${PATH}.${BODY}"
-SIG="$(printf '%s' "$BASE" | openssl dgst -sha256 -hmac "$SECRET" -hex | sed 's/^.* //')"
 
 curl -X GET "http://localhost:3000${PATH}" \
   -H "x-api-token: ${TOKEN}" \
-  -H "x-api-timestamp: ${TS}" \
-  -H "x-api-signature: ${SIG}"
+  -H "x-api-secret: ${SECRET}"
 ```
 
 ### Successful Response
@@ -223,7 +202,7 @@ curl -X GET "http://localhost:3000${PATH}" \
 
 ### Error Responses
 
-- `401 Unauthorized`: invalid/missing auth headers or signature.
+- `401 Unauthorized`: invalid/missing auth headers or secret.
 - `409 Conflict`: another live sync is already running.
 - `429 TooManyRequests`: rate limit exceeded, retry after window reset.
 - `500 LiveFetchFailed`: onOffice call or mapping failed.
@@ -248,7 +227,7 @@ Note: in `NODE_ENV=production`, playground is disabled by default unless `EXPORT
 - Use unique `token/secret` per partner.
 - Rotate secrets periodically.
 - If a secret appears in chat/screenshots/logs, rotate it immediately.
-- Keep `EXPORT_API_TIME_SKEW_SEC` reasonably low.
+- Serve the API over HTTPS so `token` and `secret` are not exposed in transit.
 
 ## Deployment
 
@@ -258,12 +237,9 @@ Railway deployment guide:
 
 ## Troubleshooting
 
-- `401 Invalid signature`:
-  - Verify exact signature base string.
-  - Ensure timestamp is Unix seconds.
-  - Ensure method/path are uppercase/exact.
-- `401 Timestamp outside allowed window`:
-  - Server/client clock drift; sync with NTP.
+- `401 Invalid secret`:
+  - Verify the secret matches the configured partner.
+  - Verify there are no leading/trailing spaces in the header values.
 - `409 Conflict`:
   - Another request is currently syncing from onOffice; retry shortly.
 - `500 LiveFetchFailed`:

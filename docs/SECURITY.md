@@ -8,11 +8,11 @@
 - Rotate secrets periodically.
 - Rotate immediately if exposed in screenshots, logs, or chats.
 
-## Request Signing
+## Request Validation
 
-- Verify signature with constant-time comparison.
-- Enforce timestamp window (`EXPORT_API_TIME_SKEW_SEC`).
-- Keep server clock synchronized (NTP).
+- Verify the provided secret with constant-time comparison.
+- Enable rate limiting for `/apartments` to reduce brute-force attempts.
+- Avoid logging raw partner secrets.
 
 ## Access Control
 

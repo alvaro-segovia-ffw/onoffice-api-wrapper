@@ -3,7 +3,7 @@
   "info": {
     "title": "Hope Apartments API",
     "version": "1.0.0",
-    "description": "Swagger documentation for the Hope Apartments API. The protected apartments endpoint uses HMAC request signing with x-api-token, x-api-timestamp, and x-api-signature headers."
+    "description": "Swagger documentation for the Hope Apartments API. The protected apartments endpoint uses x-api-token and x-api-secret headers."
   },
   "servers": [
     {
@@ -95,7 +95,7 @@
       "get": {
         "tags": ["Apartments"],
         "summary": "Fetch live apartment data",
-        "description": "Returns normalized apartments from onOffice. This endpoint requires HMAC request signing.\n\nSignature base string: `{timestamp}.{METHOD}.{PATH}.{rawBody}`\n\nFor `GET /apartments`, use `METHOD=GET`, `PATH=/apartments`, and an empty raw body.",
+        "description": "Returns normalized apartments from onOffice. This endpoint requires a valid partner token and secret.",
         "parameters": [
           {
             "name": "x-api-token",
@@ -107,22 +107,13 @@
             "description": "Partner token"
           },
           {
-            "name": "x-api-timestamp",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "Unix timestamp in seconds"
-          },
-          {
-            "name": "x-api-signature",
+            "name": "x-api-secret",
             "in": "header",
             "required": true,
             "schema": {
               "type": "string"
             },
-            "description": "Hex-encoded HMAC-SHA256 of `{timestamp}.{METHOD}.{PATH}.{rawBody}` using the partner secret"
+            "description": "Partner secret"
           }
         ],
         "responses": {
