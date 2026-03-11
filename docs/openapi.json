@@ -7,10 +7,6 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000",
-      "description": "Local"
-    },
-    {
       "url": "https://onoffice-api-wrapper.vercel.app",
       "description": "Vercel"
     }
