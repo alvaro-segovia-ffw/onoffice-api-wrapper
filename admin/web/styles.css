@@ -32,11 +32,127 @@ body {
   gap: 18px;
 }
 
-.auth-shell {
+.shell-auth {
   min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 16px 40px rgba(63, 46, 22, 0.08);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.brand-mark-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255, 252, 244, 0.78);
+  border: 1px solid rgba(211, 199, 180, 0.8);
+}
+
+.brand-mark {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  padding: 6px;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-copy strong {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 0.95;
+}
+
+.brand-copy span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.nav a,
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav-session {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-user {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(31, 28, 23, 0.06);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--brand);
+  color: #fffaf5 !important;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.auth-shell {
   display: grid;
   place-items: center;
-  padding: 24px 16px;
+  padding: 6px 16px 24px;
 }
 
 .hero,
@@ -53,6 +169,11 @@ body {
   gap: 18px;
   grid-template-columns: 1.2fr 1fr;
   padding: 24px;
+}
+
+.dashboard-main {
+  display: grid;
+  gap: 18px;
 }
 
 .hero-card,
@@ -222,6 +343,12 @@ button.ghost {
   color: var(--ink);
 }
 
+.nav-link:hover,
+.nav a:hover,
+.nav-cta:hover {
+  opacity: 0.84;
+}
+
 button.danger {
   background: #8f2222;
 }
@@ -367,6 +494,20 @@ code {
 
   .shell {
     width: min(1380px, calc(100% - 16px));
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .nav-session {
+    width: 100%;
   }
 
   .session-bar {

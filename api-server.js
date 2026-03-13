@@ -116,6 +116,17 @@ const swaggerUiPath = path.join(docsDir, 'swagger', 'index.html');
 const publicSwaggerUiPath = path.join(docsDir, 'swagger', 'public.html');
 const openApiSpecPath = path.join(docsDir, 'openapi.json');
 const publicOpenApiSpecPath = path.join(docsDir, 'openapi.public.json');
+const healthPagePath = path.join(siteDir, 'health.html');
+
+function buildHealthPayload() {
+  return {
+    status: 'ok',
+    uptimeSec: Math.floor(process.uptime()),
+    now: new Date().toISOString(),
+    authEnabled: AUTH_ENABLED,
+  };
+}
+
 function setAdminSessionCookie(res, token) {
   res.setHeader(
     'Set-Cookie',
@@ -228,13 +239,16 @@ app.get('/docs/public', (_req, res) => {
   return res.sendFile(publicSwaggerUiPath);
 });
 
-app.get('/health', (_req, res) => {
-  return res.json({
-    status: 'ok',
-    uptimeSec: Math.floor(process.uptime()),
-    now: new Date().toISOString(),
-    authEnabled: AUTH_ENABLED,
-  });
+app.get('/health.json', (_req, res) => {
+  return res.json(buildHealthPayload());
+});
+
+app.get('/health', (req, res) => {
+  const accepts = String(req.headers.accept || '');
+  if (accepts.includes('text/html')) {
+    return res.sendFile(healthPagePath);
+  }
+  return res.json(buildHealthPayload());
 });
 
 app.post('/auth/login', requireConfiguredAuth, async (req, res) => {

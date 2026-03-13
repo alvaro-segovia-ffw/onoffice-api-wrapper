@@ -7,7 +7,6 @@ const els = {
   loginStatus: document.getElementById('loginStatus'),
   sessionSummary: document.getElementById('sessionSummary'),
   btnLoad: document.getElementById('btnLoad'),
-  btnClear: document.getElementById('btnClear'),
   statsStatus: document.getElementById('statsStatus'),
   statsGrid: document.getElementById('statsGrid'),
   createStatus: document.getElementById('createStatus'),
@@ -262,13 +261,6 @@ async function bootstrap() {
 }
 
 els.btnLoad.addEventListener('click', loadDashboard);
-els.btnClear.addEventListener('click', async () => {
-  await fetch(`${normalizedBaseUrl()}/admin/logout`, {
-    method: 'POST',
-    credentials: 'include',
-  }).catch(() => {});
-  redirectToLogin();
-});
 els.createForm.addEventListener('submit', createApiKey);
 els.keysTable.addEventListener('click', handleKeyAction);
 els.btnRefreshKeys.addEventListener('click', loadApiKeys);

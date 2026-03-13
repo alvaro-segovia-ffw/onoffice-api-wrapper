@@ -29,10 +29,15 @@
           </span>
         </a>
         <nav class="nav">
+          <a href="/">Home</a>
           <a href="/docs/public">Public Docs</a>
           <a href="/health">Health</a>
-          <a href="/admin/dashboard">Admin Dashboard</a>
-          <a class="nav-cta" href="/admin/login">Login</a>
+          <span class="nav-session" data-nav-session>
+            <span class="nav-user" data-nav-user hidden></span>
+            <a class="nav-link" data-nav-dashboard href="/admin/dashboard" hidden>Dashboard</a>
+            <button class="nav-link nav-logout" data-nav-logout type="button" hidden>Logout</button>
+            <a class="nav-cta" data-nav-login href="/admin/login">Login</a>
+          </span>
         </nav>
       </header>
 
@@ -114,5 +119,6 @@
         </section>
       </main>
     </div>
+    <script src="/site/nav-session.js"></script>
   </body>
 </html>

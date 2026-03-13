@@ -5,11 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hope Apartments Admin Login</title>
     <link rel="icon" type="image/png" href="/site/imgs/hope-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/admin/styles.css" />
   </head>
   <body>
-    <main class="auth-shell">
-      <section class="auth-card">
+    <div class="shell shell-auth">
+      <header class="topbar">
+        <a class="brand" href="/">
+          <span class="brand-mark-wrap">
+            <img class="brand-mark" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
+          </span>
+          <span class="brand-copy">
+            <strong>Hope Apartments</strong>
+            <span>API Platform</span>
+          </span>
+        </a>
+        <nav class="nav">
+          <a href="/">Home</a>
+          <a href="/docs/public">Public Docs</a>
+          <a href="/health">Health</a>
+          <span class="nav-session" data-nav-session>
+            <span class="nav-user" data-nav-user hidden></span>
+            <a class="nav-link" data-nav-dashboard href="/admin/dashboard" hidden>Dashboard</a>
+            <button class="nav-link nav-logout" data-nav-logout type="button" hidden>Logout</button>
+            <a class="nav-cta" data-nav-login href="/admin/login">Login</a>
+          </span>
+        </nav>
+      </header>
+
+      <main class="auth-shell">
+        <section class="auth-card">
         <p class="eyebrow">Internal Console</p>
         <h1>Admin Login</h1>
         <p class="lede">
@@ -41,9 +71,11 @@
           <span id="loginStatus" class="status">idle</span>
           <span id="sessionSummary" class="session-summary">No active session.</span>
         </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
 
+    <script src="/site/nav-session.js"></script>
     <script src="/admin/login.js"></script>
   </body>
 </html>

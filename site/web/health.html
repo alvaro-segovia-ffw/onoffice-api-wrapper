@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hope Apartments API Status</title>
+    <link rel="icon" type="image/png" href="/site/imgs/hope-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/site/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="/">
+          <span class="brand-mark-wrap">
+            <img class="brand-mark" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
+          </span>
+          <span class="brand-copy">
+            <strong>Hope Apartments</strong>
+            <span>API Platform</span>
+          </span>
+          <span class="brand-banner" aria-hidden="true">
+            <img class="nav-banner" src="/site/imgs/hope_banner.png" alt="" />
+          </span>
+        </a>
+        <nav class="nav">
+          <a href="/">Home</a>
+          <a href="/docs/public">Public Docs</a>
+          <a href="/health">Health</a>
+          <span class="nav-session" data-nav-session>
+            <span class="nav-user" data-nav-user hidden></span>
+            <a class="nav-link" data-nav-dashboard href="/admin/dashboard" hidden>Dashboard</a>
+            <button class="nav-link nav-logout" data-nav-logout type="button" hidden>Logout</button>
+            <a class="nav-cta" data-nav-login href="/admin/login">Login</a>
+          </span>
+        </nav>
+      </header>
+
+      <main>
+        <section class="status-hero">
+          <div class="status-copy">
+            <p class="eyebrow">System Status</p>
+            <h1>API Health</h1>
+            <p class="lede">
+              Current runtime health for the Hope Apartments API. This page is intended for quick
+              human verification; machine-readable status remains available as JSON.
+            </p>
+          </div>
+          <div class="status-pill-group">
+            <span id="statusBadge" class="status-pill">Checking…</span>
+            <a class="button secondary" href="/health.json" target="_blank" rel="noreferrer">Open JSON</a>
+          </div>
+        </section>
+
+        <section class="status-grid">
+          <article class="status-card">
+            <p class="card-kicker">Service</p>
+            <h2 id="statusValue">-</h2>
+            <p id="statusMessage" class="status-note">Waiting for status response.</p>
+          </article>
+
+          <article class="status-card">
+            <p class="card-kicker">Uptime</p>
+            <h2 id="uptimeValue">-</h2>
+            <p class="status-note">Elapsed process uptime since the current runtime started.</p>
+          </article>
+
+          <article class="status-card">
+            <p class="card-kicker">Authentication</p>
+            <h2 id="authValue">-</h2>
+            <p class="status-note">Indicates whether database-backed internal auth is configured.</p>
+          </article>
+
+          <article class="status-card status-card-wide">
+            <p class="card-kicker">Timestamps</p>
+            <div class="status-metadata">
+              <div>
+                <span>Server Time</span>
+                <strong id="serverTimeValue">-</strong>
+              </div>
+              <div>
+                <span>Checked At</span>
+                <strong id="checkedAtValue">-</strong>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="/site/nav-session.js"></script>
+    <script src="/site/health.js"></script>
+  </body>
+</html>
