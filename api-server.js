@@ -174,6 +174,7 @@ function rateLimitMiddleware(req, res, next) {
 const app = express();
 const adminDir = path.join(process.cwd(), 'admin', 'web');
 const playgroundDir = path.join(process.cwd(), 'playground', 'web');
+const siteDir = path.join(process.cwd(), 'site', 'web');
 const docsDir = path.join(process.cwd(), 'docs');
 const swaggerUiPath = path.join(docsDir, 'swagger', 'index.html');
 const publicSwaggerUiPath = path.join(docsDir, 'swagger', 'public.html');
@@ -211,6 +212,11 @@ function clearAdminSessionCookie(res) {
 }
 
 app.use(express.json());
+app.use('/site', express.static(siteDir));
+
+app.get('/', (_req, res) => {
+  return res.sendFile(path.join(siteDir, 'index.html'));
+});
 
 if (ENABLE_PLAYGROUND) {
   app.use('/playground', express.static(playgroundDir));

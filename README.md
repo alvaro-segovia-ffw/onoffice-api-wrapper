@@ -144,6 +144,8 @@ npm run api
 
 Starts the server (default `http://localhost:3000`).
 
+The root route `GET /` serves a public landing page with links to partner docs, admin login, admin dashboard, and health status.
+
 ### Admin UI
 
 If `ADMIN_UI_ENABLED=true`, an internal operational UI is served at:
