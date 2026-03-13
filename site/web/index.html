@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hope Apartments API</title>
+    <link rel="icon" type="image/png" href="/site/imgs/hope-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,13 +16,18 @@
   <body>
     <div class="page-shell">
       <header class="topbar">
-        <a class="brand" href="/">
-          <img class="brand-mark" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
-          <span class="brand-copy">
-            <strong>Hope Apartments</strong>
-            <span>API Platform</span>
-          </span>
-        </a>
+        <div class="topbar-branding">
+          <a class="brand" href="/">
+            <img class="brand-mark" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
+            <span class="brand-copy">
+              <strong>Hope Apartments</strong>
+              <span>API Platform</span>
+            </span>
+          </a>
+          <div class="nav-banner-wrap" aria-hidden="true">
+            <img class="nav-banner" src="/site/imgs/hope_banner.png" alt="" />
+          </div>
+        </div>
         <nav class="nav">
           <a href="/docs/public">Public Docs</a>
           <a href="/health">Health</a>
@@ -45,8 +51,10 @@
             </div>
           </div>
           <aside class="hero-panel">
-            <img class="hero-banner" src="/site/imgs/hope_banner.png" alt="Hope Apartments Berlin skyline banner" />
             <div class="hero-panel-body">
+              <div class="hero-logo-frame">
+                <img class="hero-logo" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
+              </div>
               <p class="panel-label">Quick Access</p>
               <ul class="link-list">
                 <li><a href="/docs/public">Public partner documentation</a></li>
