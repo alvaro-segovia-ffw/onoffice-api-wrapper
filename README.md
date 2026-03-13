@@ -26,7 +26,7 @@ This project solves a common integration problem:
 
 1. onOffice returns raw data in its own schema.
 2. Partners need a stable JSON payload in your schema.
-3. Access must be controlled per partner with `token + secret`.
+3. Access must be controlled per partner with `X-API-Key`.
 
 The API provides a single protected endpoint:
 
@@ -38,17 +38,16 @@ Each request performs a live sync from onOffice and returns transformed apartmen
 
 - Live fetch from onOffice on every request.
 - Consistent transformed JSON output.
-- Per-user authentication with token + secret.
+- Partner authentication with `X-API-Key`.
 - Optional database-backed auth for real users (`/auth/login`, `/auth/me`).
-- API key authentication for partner integrations in parallel to legacy partner auth.
 - Concurrency protection (single live sync at a time).
-- Web playground to test token/secret and inspect responses.
+- Web playground to test `X-API-Key` access and inspect responses.
 - Optional CLI export script that writes JSON files to `exports/`.
 
 ## Architecture
 
 1. Client calls `GET /apartments` with auth headers.
-2. API validates `x-api-token` and `x-api-secret`.
+2. API validates `X-API-Key`.
 3. API queries onOffice (estates + pictures).
 4. Data is normalized and merged into a single apartments array.
 5. API returns:
@@ -97,7 +96,7 @@ npm install
 cp .env.example .env
 ```
 
-3. Fill your credentials and partner users in `.env`.
+3. Fill your credentials in `.env`.
 
 4. Start API:
 
@@ -124,15 +123,9 @@ Core variables:
 - `BCRYPT_ROUNDS`: optional bcrypt cost (default `12`)
 - `EXPORT_API_PORT`: API port (example: `3000`)
 - `EXPORT_API_ENABLE_PLAYGROUND`: optional (`true/false`), default `true` in non-production and `false` in production
-- `ADMIN_UI_ENABLED`: optional (`true/false`), default `true` in non-production and `false` in production
 - `EXPORT_API_RATE_LIMIT_ENABLED`: optional (`true/false`), enables in-memory rate limiting on `GET /apartments`
 - `EXPORT_API_RATE_LIMIT_WINDOW_SEC`: optional positive integer window in seconds (default `60`)
 - `EXPORT_API_RATE_LIMIT_MAX_REQUESTS`: optional positive integer max requests per window (default `60`)
-- `EXPORT_API_USERS`: JSON allow-list of API users:
-
-```env
-EXPORT_API_USERS=[{"id":"partner-a","token":"partner_token","secret":"partner_secret"}]
-```
 
 ## Run Modes
 
@@ -148,7 +141,7 @@ The root route `GET /` serves a public landing page with links to partner docs, 
 
 ### Admin UI
 
-If `ADMIN_UI_ENABLED=true`, an internal operational UI is served at:
+An internal operational UI is served at:
 
 - `GET /admin/login`
 - `GET /admin`
@@ -224,8 +217,8 @@ Generates timestamped JSON files under `exports/`.
 
 ### Auth Endpoints
 
-The current API keeps backward compatibility with `x-api-token` + `x-api-secret` for `GET /apartments`.
-In parallel, you can enable real user auth backed by PostgreSQL and partner auth via `X-API-Key`.
+The current API uses `X-API-Key` for partner access to `GET /apartments`.
+In parallel, you can enable real user auth backed by PostgreSQL for internal users and admin tooling.
 
 #### Login
 
@@ -266,7 +259,7 @@ curl -X GET "http://localhost:3000/auth/me" \
 
 ### API Key Endpoints
 
-Partner integrations can now use `X-API-Key` for `GET /apartments` without replacing the legacy flow yet.
+Partner integrations use `X-API-Key` for `GET /apartments`.
 
 Create key:
 
@@ -341,23 +334,9 @@ Docs access:
 
 ### Required Headers
 
-- `x-api-token`
-- `x-api-secret`
 - `X-API-Key`
 
 ### Curl Example
-
-```bash
-TOKEN="partner_token"
-SECRET="partner_secret"
-PATH="/apartments"
-
-curl -X GET "http://localhost:3000${PATH}" \
-  -H "x-api-token: ${TOKEN}" \
-  -H "x-api-secret: ${SECRET}"
-```
-
-Alternative with API key:
 
 ```bash
 API_KEY="hop_live_xxxxxxxxxxxx_yyyyyyyyyyyyyyyy"
@@ -373,7 +352,7 @@ curl -X GET "http://localhost:3000/apartments" \
   "apartments": [],
   "meta": {
     "requestedBy": "partner-a",
-    "authType": "legacy",
+    "authType": "api_key",
     "count": 84,
     "startedAt": "2026-03-06T10:00:00.000Z",
     "finishedAt": "2026-03-06T10:00:03.000Z",
@@ -389,12 +368,7 @@ curl -X GET "http://localhost:3000/apartments" \
 - `429 TooManyRequests`: rate limit exceeded, retry after window reset.
 - `500 LiveFetchFailed`: onOffice call or mapping failed.
 
-Migration path:
-
-1. Existing partners keep using `x-api-token` + `x-api-secret`.
-2. New partners should receive `X-API-Key`.
-3. Existing partners can be migrated one by one to API keys.
-4. `EXPORT_API_USERS` can be removed only after all partners are migrated.
+Partner access is managed entirely through API keys.
 
 ## Playground
 
@@ -403,7 +377,7 @@ Migration path:
 Web UI for manual testing:
 
 1. Enter API base URL.
-2. Enter partner token and secret.
+2. Enter the partner API key.
 3. Click `Fetch Apartments JSON`.
 
 More details in [playground/README.md](playground/README.md).
@@ -413,10 +387,10 @@ Note: in `NODE_ENV=production`, playground is disabled by default unless `EXPORT
 ## Security Notes
 
 - Never commit `.env`.
-- Use unique `token/secret` per partner.
-- Rotate secrets periodically.
-- If a secret appears in chat/screenshots/logs, rotate it immediately.
-- Serve the API over HTTPS so `token` and `secret` are not exposed in transit.
+- Use unique API keys per partner.
+- Rotate keys periodically.
+- If a key appears in chat/screenshots/logs, rotate it immediately.
+- Serve the API over HTTPS so credentials are not exposed in transit.
 
 ## Deployment
 
@@ -426,9 +400,9 @@ Railway deployment guide:
 
 ## Troubleshooting
 
-- `401 Invalid secret`:
-  - Verify the secret matches the configured partner.
-  - Verify there are no leading/trailing spaces in the header values.
+- `401 Unauthorized`:
+  - Verify the `X-API-Key` is active and not expired.
+  - Verify there are no leading/trailing spaces in the header value.
 - `409 Conflict`:
   - Another request is currently syncing from onOffice; retry shortly.
 - `500 LiveFetchFailed`:

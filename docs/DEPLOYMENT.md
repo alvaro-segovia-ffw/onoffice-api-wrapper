@@ -9,7 +9,7 @@ Deploy the API on Railway behind Railway's managed HTTPS endpoint or a custom do
 - A Railway account
 - This repository connected to a Railway project
 - Valid onOffice credentials
-- At least one partner user configured
+- A PostgreSQL database configured for human auth and API key management
 
 ## Required Environment Variables
 
@@ -19,7 +19,8 @@ Set these in Railway's service variables:
 NODE_ENV=production
 ONOFFICE_TOKEN=your_onoffice_token
 ONOFFICE_SECRET=your_onoffice_secret
-EXPORT_API_USERS=[{"id":"partner-a","token":"partner_token","secret":"partner_secret"}]
+DATABASE_URL=postgres://...
+JWT_ACCESS_SECRET=replace_with_a_long_random_secret
 ```
 
 Optional variables:
@@ -36,6 +37,7 @@ Notes:
 
 - Do not upload your local `.env` to Railway.
 - `PORT` is injected by Railway automatically and is used by the app.
+- Partner access is managed through API keys created via the admin UI or `/api-keys`.
 
 ## Deploy Steps
 
@@ -54,7 +56,7 @@ npm start
 
 - `GET /health` returns `200`
 - `GET /docs` loads Swagger UI
-- `GET /apartments` succeeds with a configured partner token/secret
+- `GET /apartments` succeeds with a valid `X-API-Key`
 - `/playground` is disabled in production unless you explicitly enable it
 
 ## Custom Domain

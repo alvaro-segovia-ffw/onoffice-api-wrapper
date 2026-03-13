@@ -21,11 +21,11 @@ const {
   updateApiKey,
 } = require('./lib/api-key-service');
 const { listAuditLogs, writeAuditLog } = require('./lib/audit-service');
+const { requireApiKey } = require('./middlewares/require-api-key');
 const { serializeCookie } = require('./lib/cookies');
 const { loadDotEnv } = require('./lib/load-dotenv');
 const { fetchApartmentsLive } = require('./lib/apartment-export');
-const { safeCompare } = require('./lib/safe-compare');
-const { docsAvailabilityMiddleware, requireDocsAccess } = require('./middlewares/docs-access');
+const { requireDocsAccess } = require('./middlewares/docs-access');
 const {
   adminCookieName,
   requireAdminOperator,
@@ -34,7 +34,6 @@ const {
 } = require('./middlewares/require-admin-operator');
 const { requireConfiguredAuth } = require('./middlewares/require-configured-auth');
 const { requireAuth } = require('./middlewares/require-auth');
-const { requireLegacyOrApiKeyAuth } = require('./middlewares/require-legacy-or-api-key-auth');
 
 loadDotEnv(path.join(process.cwd(), '.env'));
 
@@ -58,9 +57,6 @@ function parseEnvPositiveInt(raw, fallback) {
 }
 
 const ENABLE_PLAYGROUND = parseEnvBool(process.env.EXPORT_API_ENABLE_PLAYGROUND, !IS_PRODUCTION);
-const ADMIN_UI_ENABLED = parseEnvBool(process.env.ADMIN_UI_ENABLED, !IS_PRODUCTION);
-const DOCS_ENABLED = true;
-const PUBLIC_DOCS_ENABLED = true;
 const RATE_LIMIT_ENABLED = parseEnvBool(process.env.EXPORT_API_RATE_LIMIT_ENABLED, true);
 const RATE_LIMIT_WINDOW_SEC = parseEnvPositiveInt(process.env.EXPORT_API_RATE_LIMIT_WINDOW_SEC, 60);
 const RATE_LIMIT_MAX_REQUESTS = parseEnvPositiveInt(
@@ -70,69 +66,9 @@ const RATE_LIMIT_MAX_REQUESTS = parseEnvPositiveInt(
 const rateLimitState = new Map();
 const AUTH_ENABLED = isAuthConfigured();
 
-function parseUsers(raw) {
-  if (!raw) {
-    return new Map();
-  }
-
-  let users;
-  try {
-    users = JSON.parse(raw);
-  } catch (err) {
-    throw new Error(`Invalid EXPORT_API_USERS JSON: ${err.message}`);
-  }
-
-  if (!Array.isArray(users) || users.length === 0) {
-    return new Map();
-  }
-
-  const byToken = new Map();
-  for (const entry of users) {
-    const id = String(entry?.id || '');
-    const token = String(entry?.token || '');
-    const secret = String(entry?.secret || '');
-
-    if (!id || !token || !secret) {
-      throw new Error('Each EXPORT_API_USERS item requires id, token and secret.');
-    }
-    if (byToken.has(token)) {
-      throw new Error(`Duplicated token in EXPORT_API_USERS: ${token}`);
-    }
-    byToken.set(token, { id, token, secret });
-  }
-
-  return byToken;
-}
-
-const usersByToken = parseUsers(process.env.EXPORT_API_USERS);
-
-function authMiddleware(req, res, next) {
-  const token = String(req.header('x-api-token') || '').trim();
-  const secret = String(req.header('x-api-secret') || '').trim();
-
-  if (!token || !secret) {
-    return res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Missing x-api-token or x-api-secret headers.',
-    });
-  }
-
-  const user = usersByToken.get(token);
-  if (!user) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid token.' });
-  }
-
-  if (!safeCompare(user.secret, secret)) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'Invalid secret.' });
-  }
-
-  req.authUser = { id: user.id, token: user.token };
-  return next();
-}
-
 function buildRateLimitKey(req) {
-  const token = String(req.header('x-api-token') || '').trim();
-  if (token) return `token:${token}`;
+  const apiKey = String(req.header('x-api-key') || '').trim();
+  if (apiKey) return `api_key:${apiKey}`;
   return `ip:${req.ip || 'unknown'}`;
 }
 
@@ -180,10 +116,6 @@ const swaggerUiPath = path.join(docsDir, 'swagger', 'index.html');
 const publicSwaggerUiPath = path.join(docsDir, 'swagger', 'public.html');
 const openApiSpecPath = path.join(docsDir, 'openapi.json');
 const publicOpenApiSpecPath = path.join(docsDir, 'openapi.public.json');
-const requireDocsAvailability = docsAvailabilityMiddleware(DOCS_ENABLED);
-const requirePublicDocsAvailability = docsAvailabilityMiddleware(PUBLIC_DOCS_ENABLED);
-const requirePartnerAccess = requireLegacyOrApiKeyAuth(authMiddleware);
-
 function setAdminSessionCookie(res, token) {
   res.setHeader(
     'Set-Cookie',
@@ -225,76 +157,74 @@ if (ENABLE_PLAYGROUND) {
   });
 }
 
-if (ADMIN_UI_ENABLED) {
-  app.use('/admin', express.static(adminDir, { index: false }));
-  app.get('/admin', (_req, res) => {
-    return res.redirect('/admin/dashboard');
-  });
-  app.get('/admin/dashboard', requireConfiguredAuth, requireAdminPageSession, (_req, res) => {
-    res.sendFile(path.join(adminDir, 'index.html'));
-  });
-  app.get('/admin/login', (_req, res) => {
-    res.sendFile(path.join(adminDir, 'login.html'));
-  });
-  app.get('/admin/session', requireConfiguredAuth, requireAdminOperator, (req, res) => {
-    return res.json({ user: req.adminAuth.user });
-  });
-  app.post('/admin/login', requireConfiguredAuth, async (req, res) => {
-    const email = String(req.body?.email || '').trim();
-    const password = String(req.body?.password || '');
+app.use('/admin', express.static(adminDir, { index: false }));
+app.get('/admin', (_req, res) => {
+  return res.redirect('/admin/dashboard');
+});
+app.get('/admin/dashboard', requireConfiguredAuth, requireAdminPageSession, (_req, res) => {
+  res.sendFile(path.join(adminDir, 'index.html'));
+});
+app.get('/admin/login', (_req, res) => {
+  res.sendFile(path.join(adminDir, 'login.html'));
+});
+app.get('/admin/session', requireConfiguredAuth, requireAdminOperator, (req, res) => {
+  return res.json({ user: req.adminAuth.user });
+});
+app.post('/admin/login', requireConfiguredAuth, async (req, res) => {
+  const email = String(req.body?.email || '').trim();
+  const password = String(req.body?.password || '');
 
-    if (!email || !password) {
-      return res.status(400).json({
-        error: 'BadRequest',
-        message: 'email and password are required.',
+  if (!email || !password) {
+    return res.status(400).json({
+      error: 'BadRequest',
+      message: 'email and password are required.',
+    });
+  }
+
+  try {
+    const session = await loginWithPassword(email, password, { issueRefreshToken: false });
+    if (!session) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid email or password.',
+      });
+    }
+    if (!userHasAdminConsoleAccess(session.user)) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Only admin or developer users can access the admin console.',
       });
     }
 
-    try {
-      const session = await loginWithPassword(email, password, { issueRefreshToken: false });
-      if (!session) {
-        return res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid email or password.',
-        });
-      }
-      if (!userHasAdminConsoleAccess(session.user)) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'Only admin or developer users can access the admin console.',
-        });
-      }
+    setAdminSessionCookie(res, session.accessToken);
+    return res.json({ user: session.user });
+  } catch (err) {
+    return res.status(500).json({
+      error: 'AdminLoginFailed',
+      message: err.message || 'Unknown error',
+    });
+  }
+});
+app.post('/admin/logout', (_req, res) => {
+  clearAdminSessionCookie(res);
+  return res.status(204).end();
+});
 
-      setAdminSessionCookie(res, session.accessToken);
-      return res.json({ user: session.user });
-    } catch (err) {
-      return res.status(500).json({
-        error: 'AdminLoginFailed',
-        message: err.message || 'Unknown error',
-      });
-    }
-  });
-  app.post('/admin/logout', (_req, res) => {
-    clearAdminSessionCookie(res);
-    return res.status(204).end();
-  });
-}
-
-app.get('/openapi.json', requireDocsAvailability, requireConfiguredAuth, requireDocsAccess, (_req, res) => {
+app.get('/openapi.json', requireConfiguredAuth, requireDocsAccess, (_req, res) => {
   res.type('application/json');
   return res.sendFile(openApiSpecPath);
 });
 
-app.get('/openapi.public.json', requirePublicDocsAvailability, (_req, res) => {
+app.get('/openapi.public.json', (_req, res) => {
   res.type('application/json');
   return res.sendFile(publicOpenApiSpecPath);
 });
 
-app.get('/docs', requireDocsAvailability, requireConfiguredAuth, requireDocsAccess, (_req, res) => {
+app.get('/docs', requireConfiguredAuth, requireDocsAccess, (_req, res) => {
   return res.sendFile(swaggerUiPath);
 });
 
-app.get('/docs/public', requirePublicDocsAvailability, (_req, res) => {
+app.get('/docs/public', (_req, res) => {
   return res.sendFile(publicSwaggerUiPath);
 });
 
@@ -729,7 +659,7 @@ app.patch('/api-keys/:id', requireConfiguredAuth, requireAdminOperator, async (r
   }
 });
 
-app.get('/apartments', rateLimitMiddleware, requirePartnerAccess, async (req, res) => {
+app.get('/apartments', rateLimitMiddleware, requireApiKey, async (req, res) => {
   if (isLiveRequestRunning) {
     return res.status(409).json({
       error: 'Conflict',
@@ -748,8 +678,8 @@ app.get('/apartments', rateLimitMiddleware, requirePartnerAccess, async (req, re
     return res.json({
       apartments,
       meta: {
-        requestedBy: req.authActor?.partnerId || req.authUser.id,
-        authType: req.authActor?.type || 'legacy',
+        requestedBy: req.authActor.partnerId,
+        authType: req.authActor.type,
         count: apartments.length,
         startedAt: startedAt.toISOString(),
         finishedAt: finishedAt.toISOString(),
@@ -773,9 +703,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(
     `Playground ${ENABLE_PLAYGROUND ? 'enabled' : 'disabled'} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
   );
-  console.log(`Admin UI ${ADMIN_UI_ENABLED ? 'enabled' : 'disabled'}`);
-  console.log(`Docs ${DOCS_ENABLED ? 'enabled' : 'disabled'}${DOCS_ENABLED ? ' (JWT + roles protected)' : ''}`);
-  console.log(`Public docs ${PUBLIC_DOCS_ENABLED ? 'enabled' : 'disabled'}`);
+  console.log('Admin UI enabled');
+  console.log('Docs enabled (JWT/session protected)');
+  console.log('Public docs enabled');
   console.log(`App auth ${AUTH_ENABLED ? 'enabled' : 'disabled'}${AUTH_ENABLED ? ' (database + JWT)' : ''}`);
   console.log(
     `Rate limiting ${

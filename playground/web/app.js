@@ -2,8 +2,7 @@
 
 const els = {
   baseUrl: document.getElementById('baseUrl'),
-  token: document.getElementById('token'),
-  secret: document.getElementById('secret'),
+  apiKey: document.getElementById('apiKey'),
   status: document.getElementById('status'),
   apartmentCount: document.getElementById('apartmentCount'),
   output: document.getElementById('output'),
@@ -52,26 +51,24 @@ function normalizedBaseUrl() {
 }
 
 function requireAuth() {
-  const token = els.token.value.trim();
-  const secret = els.secret.value.trim();
-  if (!token || !secret) {
-    throw new Error('Token and secret are required.');
+  const apiKey = els.apiKey.value.trim();
+  if (!apiKey) {
+    throw new Error('X-API-Key is required.');
   }
-  return { token, secret };
+  return { apiKey };
 }
 
 async function fetchApartments() {
   setStatus('loading...', null);
   setApartmentCount(null);
   try {
-    const { token, secret } = requireAuth();
+    const { apiKey } = requireAuth();
     const pathName = '/apartments';
 
     const res = await fetch(`${normalizedBaseUrl()}${pathName}`, {
       method: 'GET',
       headers: {
-        'x-api-token': token,
-        'x-api-secret': secret,
+        'X-API-Key': apiKey,
       },
     });
 

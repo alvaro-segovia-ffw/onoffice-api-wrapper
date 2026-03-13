@@ -3,7 +3,7 @@
   "info": {
     "title": "Hope Apartments API",
     "version": "1.0.0",
-    "description": "Swagger documentation for the Hope Apartments API. Apartments support legacy partner auth and the newer X-API-Key flow. Docs are protected with Bearer JWT auth."
+    "description": "Swagger documentation for the Hope Apartments API. Partner apartment access uses X-API-Key. Internal docs are protected with admin session or Bearer JWT auth."
   },
   "servers": [
     {
@@ -145,30 +145,17 @@
       "get": {
         "tags": ["Apartments"],
         "summary": "Fetch live apartment data",
-        "description": "Returns normalized apartments from onOffice. This endpoint accepts either the legacy partner token/secret pair or a valid X-API-Key.",
+        "description": "Returns normalized apartments from onOffice. Partner access requires a valid X-API-Key.",
+        "security": [
+          {
+            "partnerApiKey": []
+          }
+        ],
         "parameters": [
-          {
-            "name": "x-api-token",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Partner token"
-          },
-          {
-            "name": "x-api-secret",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Partner secret"
-          },
           {
             "name": "X-API-Key",
             "in": "header",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string"
             },
@@ -390,6 +377,11 @@
   },
   "components": {
     "securitySchemes": {
+      "partnerApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      },
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",

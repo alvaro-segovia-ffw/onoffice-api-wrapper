@@ -22,7 +22,7 @@
       "get": {
         "tags": ["Apartments"],
         "summary": "Fetch live apartment data",
-        "description": "Returns normalized apartments from onOffice. Partners should authenticate with X-API-Key. Legacy x-api-token + x-api-secret is supported only during migration and is not documented publicly.",
+        "description": "Returns normalized apartments from onOffice. Partners authenticate with X-API-Key.",
         "security": [
           {
             "partnerApiKey": []

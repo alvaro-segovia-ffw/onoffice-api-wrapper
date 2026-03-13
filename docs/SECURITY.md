@@ -3,27 +3,25 @@
 ## Credentials and Secrets
 
 - Never commit `.env`.
-- Use unique `token/secret` per partner.
-- Use long random secrets (at least 48+ bytes).
-- Rotate secrets periodically.
+- Use unique API keys per partner.
+- Use long random generated keys.
+- Rotate keys periodically.
 - Rotate immediately if exposed in screenshots, logs, or chats.
 
 ## Request Validation
 
-- Verify the provided secret with constant-time comparison.
+- Verify API keys with constant-time comparison against stored hashes.
 - Enable rate limiting for `/apartments` to reduce brute-force attempts.
-- Avoid logging raw partner secrets.
+- Avoid logging raw API keys.
 
 ## Access Control
 
-- `EXPORT_API_USERS` is your allow-list.
-- Remove inactive partners promptly.
+- API keys are your partner allow-list.
+- Remove inactive or revoked partner keys promptly.
 - Keep partner IDs descriptive (`partner-a`, `partner-b`, etc.).
 - Enable rate limiting for `/apartments` to reduce brute-force and abuse.
-- Do not expose `/docs` or `/openapi.json` publicly in production.
 - Public docs are always reachable for partners.
 - Internal docs stay protected by authentication and role checks.
-- If docs are enabled, require `DOCS_BASIC_AUTH_USER` and `DOCS_BASIC_AUTH_PASSWORD`.
 
 ## Transport Security
 
@@ -42,8 +40,8 @@
 
 If compromise is suspected:
 
-1. Rotate affected partner secret immediately.
+1. Rotate affected partner API key immediately.
 2. Issue new credentials.
-3. Invalidate old credentials from `EXPORT_API_USERS`.
+3. Revoke the old API key.
 4. Review logs for suspicious usage.
 5. Notify affected partner.
