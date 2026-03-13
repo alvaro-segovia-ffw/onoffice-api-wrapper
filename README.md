@@ -125,8 +125,6 @@ Core variables:
 - `EXPORT_API_PORT`: API port (example: `3000`)
 - `EXPORT_API_ENABLE_PLAYGROUND`: optional (`true/false`), default `true` in non-production and `false` in production
 - `ADMIN_UI_ENABLED`: optional (`true/false`), default `true` in non-production and `false` in production
-- `DOCS_ENABLED`: optional (`true/false`), default `true` in non-production and `false` in production
-- `PUBLIC_DOCS_ENABLED`: optional (`true/false`), default `false`, enables partner-facing public docs
 - `EXPORT_API_RATE_LIMIT_ENABLED`: optional (`true/false`), enables in-memory rate limiting on `GET /apartments`
 - `EXPORT_API_RATE_LIMIT_WINDOW_SEC`: optional positive integer window in seconds (default `60`)
 - `EXPORT_API_RATE_LIMIT_MAX_REQUESTS`: optional positive integer max requests per window (default `60`)
@@ -172,12 +170,10 @@ The service supports two documentation surfaces:
 - Public partner docs
   - `GET /openapi.public.json`
   - `GET /docs/public`
-  - enabled with `PUBLIC_DOCS_ENABLED=true`
   - contains only partner-facing integration endpoints
 - Private internal docs
   - `GET /openapi.json`
   - `GET /docs`
-  - enabled with `DOCS_ENABLED=true`
   - protected with internal auth and includes operational endpoints
 
 ### CLI Export Mode
@@ -333,14 +329,8 @@ curl -X GET "http://localhost:3000/audit-logs?partnerId=roombae&limit=20" \
 
 Public docs are intended only for the partner integration surface.
 Internal docs include operational and admin endpoints.
-In production, private docs are disabled by default. If you enable them, access is restricted to authenticated users with roles `admin`, `developer`, or `client`.
-
-Example:
-
-```env
-DOCS_ENABLED=true
-PUBLIC_DOCS_ENABLED=true
-```
+Both documentation surfaces are always enabled by the application.
+Private docs remain restricted to authenticated users with roles `admin`, `developer`, or `client`.
 
 Docs access:
 

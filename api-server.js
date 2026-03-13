@@ -59,8 +59,8 @@ function parseEnvPositiveInt(raw, fallback) {
 
 const ENABLE_PLAYGROUND = parseEnvBool(process.env.EXPORT_API_ENABLE_PLAYGROUND, !IS_PRODUCTION);
 const ADMIN_UI_ENABLED = parseEnvBool(process.env.ADMIN_UI_ENABLED, !IS_PRODUCTION);
-const DOCS_ENABLED = parseEnvBool(process.env.DOCS_ENABLED, !IS_PRODUCTION);
-const PUBLIC_DOCS_ENABLED = parseEnvBool(process.env.PUBLIC_DOCS_ENABLED, false);
+const DOCS_ENABLED = true;
+const PUBLIC_DOCS_ENABLED = true;
 const RATE_LIMIT_ENABLED = parseEnvBool(process.env.EXPORT_API_RATE_LIMIT_ENABLED, true);
 const RATE_LIMIT_WINDOW_SEC = parseEnvPositiveInt(process.env.EXPORT_API_RATE_LIMIT_WINDOW_SEC, 60);
 const RATE_LIMIT_MAX_REQUESTS = parseEnvPositiveInt(
