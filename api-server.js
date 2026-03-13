@@ -6,6 +6,7 @@ const { loginWithPassword, getUserProfile, isAuthConfigured } = require('./lib/a
 const {
   createApiKey,
   findApiKeyById,
+  getApiKeyStats,
   isApiKeyServiceConfigured,
   listApiKeys,
   reactivateApiKey,
@@ -13,7 +14,7 @@ const {
   rotateApiKey,
   updateApiKey,
 } = require('./lib/api-key-service');
-const { writeAuditLog } = require('./lib/audit-service');
+const { listAuditLogs, writeAuditLog } = require('./lib/audit-service');
 const { loadDotEnv } = require('./lib/load-dotenv');
 const { fetchApartmentsLive } = require('./lib/apartment-export');
 const { safeCompare } = require('./lib/safe-compare');
@@ -45,6 +46,7 @@ function parseEnvPositiveInt(raw, fallback) {
 }
 
 const ENABLE_PLAYGROUND = parseEnvBool(process.env.EXPORT_API_ENABLE_PLAYGROUND, !IS_PRODUCTION);
+const ADMIN_UI_ENABLED = parseEnvBool(process.env.ADMIN_UI_ENABLED, !IS_PRODUCTION);
 const DOCS_ENABLED = parseEnvBool(process.env.DOCS_ENABLED, !IS_PRODUCTION);
 const RATE_LIMIT_ENABLED = parseEnvBool(process.env.EXPORT_API_RATE_LIMIT_ENABLED, true);
 const RATE_LIMIT_WINDOW_SEC = parseEnvPositiveInt(process.env.EXPORT_API_RATE_LIMIT_WINDOW_SEC, 60);
@@ -157,6 +159,7 @@ function rateLimitMiddleware(req, res, next) {
 }
 
 const app = express();
+const adminDir = path.join(process.cwd(), 'admin', 'web');
 const playgroundDir = path.join(process.cwd(), 'playground', 'web');
 const docsDir = path.join(process.cwd(), 'docs');
 const swaggerUiPath = path.join(docsDir, 'swagger', 'index.html');
@@ -171,6 +174,13 @@ if (ENABLE_PLAYGROUND) {
   app.use('/playground', express.static(playgroundDir));
   app.get('/playground', (_req, res) => {
     res.sendFile(path.join(playgroundDir, 'index.html'));
+  });
+}
+
+if (ADMIN_UI_ENABLED) {
+  app.use('/admin', express.static(adminDir));
+  app.get('/admin', (_req, res) => {
+    res.sendFile(path.join(adminDir, 'index.html'));
   });
 }
 
@@ -259,6 +269,52 @@ app.get('/api-keys', ...requireApiKeyAdmin, async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       error: 'ApiKeysListFailed',
+      message: err.message || 'Unknown error',
+    });
+  }
+});
+
+app.get('/api-keys/stats', ...requireApiKeyAdmin, async (_req, res) => {
+  if (!isApiKeyServiceConfigured()) {
+    return res.status(503).json({
+      error: 'ApiKeyServiceNotConfigured',
+      message: 'API key service requires DATABASE_URL.',
+    });
+  }
+
+  try {
+    const stats = await getApiKeyStats();
+    return res.json({ stats });
+  } catch (err) {
+    return res.status(500).json({
+      error: 'ApiKeyStatsFailed',
+      message: err.message || 'Unknown error',
+    });
+  }
+});
+
+app.get('/audit-logs', ...requireApiKeyAdmin, async (req, res) => {
+  if (!isApiKeyServiceConfigured()) {
+    return res.status(503).json({
+      error: 'AuditServiceNotConfigured',
+      message: 'Audit service requires DATABASE_URL.',
+    });
+  }
+
+  try {
+    const logs = await listAuditLogs({
+      action: req.query.action,
+      resourceType: req.query.resourceType,
+      resourceId: req.query.resourceId,
+      actorUserId: req.query.actorUserId,
+      actorApiKeyId: req.query.actorApiKeyId,
+      partnerId: req.query.partnerId,
+      limit: req.query.limit,
+    });
+    return res.json({ logs });
+  } catch (err) {
+    return res.status(500).json({
+      error: 'AuditLogsFailed',
       message: err.message || 'Unknown error',
     });
   }
@@ -554,6 +610,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(
     `Playground ${ENABLE_PLAYGROUND ? 'enabled' : 'disabled'} (NODE_ENV=${process.env.NODE_ENV || 'development'})`
   );
+  console.log(`Admin UI ${ADMIN_UI_ENABLED ? 'enabled' : 'disabled'}`);
   console.log(`Docs ${DOCS_ENABLED ? 'enabled' : 'disabled'}${DOCS_ENABLED ? ' (JWT + roles protected)' : ''}`);
   console.log(`App auth ${AUTH_ENABLED ? 'enabled' : 'disabled'}${AUTH_ENABLED ? ' (database + JWT)' : ''}`);
   console.log(

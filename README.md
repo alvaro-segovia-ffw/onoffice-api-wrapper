@@ -123,6 +123,7 @@ Core variables:
 - `BCRYPT_ROUNDS`: optional bcrypt cost (default `12`)
 - `EXPORT_API_PORT`: API port (example: `3000`)
 - `EXPORT_API_ENABLE_PLAYGROUND`: optional (`true/false`), default `true` in non-production and `false` in production
+- `ADMIN_UI_ENABLED`: optional (`true/false`), default `true` in non-production and `false` in production
 - `DOCS_ENABLED`: optional (`true/false`), default `true` in non-production and `false` in production
 - `EXPORT_API_RATE_LIMIT_ENABLED`: optional (`true/false`), enables in-memory rate limiting on `GET /apartments`
 - `EXPORT_API_RATE_LIMIT_WINDOW_SEC`: optional positive integer window in seconds (default `60`)
@@ -143,6 +144,20 @@ npm run api
 
 Starts the server (default `http://localhost:3000`).
 
+### Admin UI
+
+If `ADMIN_UI_ENABLED=true`, an internal operational UI is served at:
+
+- `GET /admin`
+
+The page itself is static, but all actions require a Bearer token from an `admin` or `developer` user. Use it for:
+
+- viewing API key stats
+- listing API keys
+- creating keys
+- revoking, reactivating, rotating keys
+- browsing recent audit logs
+
 ### CLI Export Mode
 
 ```bash
@@ -159,12 +174,14 @@ Generates timestamped JSON files under `exports/`.
 - `GET /auth/me` (optional, requires Bearer token)
 - `GET /apartments` (protected)
 - `GET /api-keys` (admin/developer)
+- `GET /api-keys/stats` (admin/developer)
 - `POST /api-keys` (admin/developer)
 - `GET /api-keys/:id` (admin/developer)
 - `PATCH /api-keys/:id` (admin/developer)
 - `POST /api-keys/:id/revoke` (admin/developer)
 - `POST /api-keys/:id/reactivate` (admin/developer)
 - `POST /api-keys/:id/rotate` (admin/developer)
+- `GET /audit-logs` (admin/developer)
 - `GET /health` (unprotected health check)
 - `GET /openapi.json` (OpenAPI spec)
 - `GET /docs` (Swagger UI)
@@ -236,6 +253,30 @@ curl -X GET "http://localhost:3000/apartments" \
 
 List / read / update / revoke / reactivate API keys require a JWT from a user with role `admin` or `developer`.
 Rotate returns a brand new secret once and revokes the previous key atomically.
+
+### Audit And Metrics
+
+Operational visibility endpoints:
+
+```bash
+ACCESS_TOKEN="replace_with_admin_or_developer_token"
+
+curl -X GET "http://localhost:3000/api-keys/stats" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+
+curl -X GET "http://localhost:3000/audit-logs?partnerId=roombae&limit=20" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+`GET /audit-logs` supports these query params:
+
+- `action`
+- `resourceType`
+- `resourceId`
+- `actorUserId`
+- `actorApiKeyId`
+- `partnerId`
+- `limit`
 
 ## Swagger
 

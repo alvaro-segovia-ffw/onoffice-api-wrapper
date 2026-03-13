@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hope Apartments Admin</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Internal Console</p>
+          <h1>Hope Apartments Admin</h1>
+          <p class="lede">
+            Paste a Bearer token from an <code>admin</code> or <code>developer</code> user and
+            operate API keys and audit logs from one place.
+          </p>
+        </div>
+        <div class="hero-card">
+          <label>
+            API Base URL
+            <input id="baseUrl" type="text" value="https://api.hope-apartments.de" />
+          </label>
+          <label>
+            Bearer Token
+            <textarea id="accessToken" rows="5" placeholder="Paste JWT access token"></textarea>
+          </label>
+          <div class="actions">
+            <button id="btnLoad" type="button">Load Dashboard</button>
+            <button id="btnClear" type="button" class="ghost">Clear Token</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel stats">
+          <div class="panel-head">
+            <h2>API Key Stats</h2>
+            <span id="statsStatus" class="status">idle</span>
+          </div>
+          <div id="statsGrid" class="stats-grid">
+            <div class="stat"><span>Total</span><strong>-</strong></div>
+            <div class="stat"><span>Active</span><strong>-</strong></div>
+            <div class="stat"><span>Revoked</span><strong>-</strong></div>
+            <div class="stat"><span>Expired</span><strong>-</strong></div>
+            <div class="stat"><span>Used 24h</span><strong>-</strong></div>
+            <div class="stat"><span>Auth Failed 24h</span><strong>-</strong></div>
+          </div>
+        </article>
+
+        <article class="panel create">
+          <div class="panel-head">
+            <h2>Create API Key</h2>
+            <span id="createStatus" class="status">idle</span>
+          </div>
+          <form id="createForm" class="form-grid">
+            <label>
+              Partner ID
+              <input name="partnerId" type="text" placeholder="partner-roombae" required />
+            </label>
+            <label>
+              Name
+              <input name="name" type="text" placeholder="Roombae Production" required />
+            </label>
+            <label>
+              Environment
+              <select name="environment">
+                <option value="live">live</option>
+                <option value="test">test</option>
+              </select>
+            </label>
+            <label>
+              Role
+              <select name="role">
+                <option value="client">client</option>
+                <option value="developer">developer</option>
+                <option value="admin">admin</option>
+              </select>
+            </label>
+            <label class="wide">
+              Scopes
+              <input name="scopes" type="text" value="apartments:read" />
+            </label>
+            <label class="wide">
+              Notes
+              <input name="notes" type="text" placeholder="Optional notes" />
+            </label>
+            <div class="actions wide">
+              <button type="submit">Create Key</button>
+            </div>
+          </form>
+          <pre id="createOutput">No key created yet.</pre>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="panel keys">
+          <div class="panel-head">
+            <h2>API Keys</h2>
+            <span id="keysStatus" class="status">idle</span>
+          </div>
+          <div class="toolbar">
+            <button id="btnRefreshKeys" type="button" class="ghost">Refresh Keys</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Name</th>
+                  <th>Prefix</th>
+                  <th>Status</th>
+                  <th>Last Used</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="keysTable">
+                <tr><td colspan="6" class="empty">No data loaded.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre id="keyActionOutput">No actions run yet.</pre>
+        </article>
+
+        <article class="panel audit">
+          <div class="panel-head">
+            <h2>Audit Logs</h2>
+            <span id="auditStatus" class="status">idle</span>
+          </div>
+          <form id="auditForm" class="audit-filter">
+            <label>
+              Partner ID
+              <input name="partnerId" type="text" placeholder="roombae" />
+            </label>
+            <label>
+              Action
+              <input name="action" type="text" placeholder="api_key_used" />
+            </label>
+            <label>
+              Limit
+              <input name="limit" type="number" min="1" max="200" value="20" />
+            </label>
+            <div class="actions">
+              <button type="submit">Load Logs</button>
+            </div>
+          </form>
+          <pre id="auditOutput">No logs loaded.</pre>
+        </article>
+      </section>
+    </main>
+
+    <script src="/admin/app.js"></script>
+  </body>
+  </html>

@@ -1,0 +1,253 @@
+'use strict';
+
+const storageKey = 'hope-admin-token';
+
+const els = {
+  baseUrl: document.getElementById('baseUrl'),
+  accessToken: document.getElementById('accessToken'),
+  btnLoad: document.getElementById('btnLoad'),
+  btnClear: document.getElementById('btnClear'),
+  statsStatus: document.getElementById('statsStatus'),
+  statsGrid: document.getElementById('statsGrid'),
+  createStatus: document.getElementById('createStatus'),
+  createForm: document.getElementById('createForm'),
+  createOutput: document.getElementById('createOutput'),
+  keysStatus: document.getElementById('keysStatus'),
+  btnRefreshKeys: document.getElementById('btnRefreshKeys'),
+  keysTable: document.getElementById('keysTable'),
+  keyActionOutput: document.getElementById('keyActionOutput'),
+  auditStatus: document.getElementById('auditStatus'),
+  auditForm: document.getElementById('auditForm'),
+  auditOutput: document.getElementById('auditOutput'),
+};
+
+function setStatus(el, label, ok) {
+  el.textContent = label;
+  el.classList.remove('ok', 'err');
+  if (ok === true) el.classList.add('ok');
+  if (ok === false) el.classList.add('err');
+}
+
+function normalizedBaseUrl() {
+  return (els.baseUrl.value || '').trim().replace(/\/+$/, '') || window.location.origin;
+}
+
+function getToken() {
+  const token = els.accessToken.value.trim();
+  if (!token) {
+    throw new Error('Bearer token is required.');
+  }
+  return token;
+}
+
+function writeJson(el, payload) {
+  el.textContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+}
+
+async function apiFetch(path, options = {}) {
+  const token = getToken();
+  const headers = new Headers(options.headers || {});
+  headers.set('Authorization', `Bearer ${token}`);
+  if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const res = await fetch(`${normalizedBaseUrl()}${path}`, {
+    ...options,
+    headers,
+  });
+
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const message = payload?.message || `HTTP ${res.status}`;
+    throw new Error(message);
+  }
+  return payload;
+}
+
+function rememberToken() {
+  localStorage.setItem(storageKey, els.accessToken.value.trim());
+}
+
+function restoreToken() {
+  const token = localStorage.getItem(storageKey);
+  if (token) els.accessToken.value = token;
+}
+
+function renderStats(stats) {
+  const items = [
+    ['Total', stats.totalKeys],
+    ['Active', stats.activeKeys],
+    ['Revoked', stats.revokedKeys],
+    ['Expired', stats.expiredKeys],
+    ['Used 24h', stats.apiKeyUsed24h],
+    ['Auth Failed 24h', stats.apiKeyAuthFailed24h],
+  ];
+
+  els.statsGrid.innerHTML = items
+    .map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value ?? '-'}</strong></div>`)
+    .join('');
+}
+
+function statusBadge(apiKey) {
+  if (!apiKey.isActive) return '<span class="badge off">revoked</span>';
+  if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= Date.now()) {
+    return '<span class="badge warn">expired</span>';
+  }
+  return '<span class="badge on">active</span>';
+}
+
+function keyActionButtons(apiKey) {
+  const buttons = [];
+  buttons.push(`<button data-action="rotate" data-id="${apiKey.id}" type="button">Rotate</button>`);
+  if (apiKey.isActive) {
+    buttons.push(`<button data-action="revoke" data-id="${apiKey.id}" type="button" class="danger">Revoke</button>`);
+  } else {
+    buttons.push(`<button data-action="reactivate" data-id="${apiKey.id}" type="button" class="ghost">Reactivate</button>`);
+  }
+  return buttons.join('');
+}
+
+function renderApiKeys(apiKeys) {
+  if (!apiKeys.length) {
+    els.keysTable.innerHTML = '<tr><td colspan="6" class="empty">No API keys found.</td></tr>';
+    return;
+  }
+
+  els.keysTable.innerHTML = apiKeys
+    .map(
+      (apiKey) => `
+        <tr>
+          <td>${apiKey.partnerId}</td>
+          <td>${apiKey.name}</td>
+          <td><code>${apiKey.keyPrefix}</code></td>
+          <td>${statusBadge(apiKey)}</td>
+          <td>${apiKey.lastUsedAt || '-'}</td>
+          <td><div class="row-actions">${keyActionButtons(apiKey)}</div></td>
+        </tr>
+      `
+    )
+    .join('');
+}
+
+async function loadStats() {
+  setStatus(els.statsStatus, 'loading...', null);
+  try {
+    const payload = await apiFetch('/api-keys/stats');
+    renderStats(payload.stats || {});
+    setStatus(els.statsStatus, 'loaded', true);
+  } catch (err) {
+    setStatus(els.statsStatus, 'error', false);
+    writeJson(els.keyActionOutput, { error: err.message });
+  }
+}
+
+async function loadApiKeys() {
+  setStatus(els.keysStatus, 'loading...', null);
+  try {
+    const payload = await apiFetch('/api-keys');
+    renderApiKeys(payload.apiKeys || []);
+    setStatus(els.keysStatus, 'loaded', true);
+  } catch (err) {
+    setStatus(els.keysStatus, 'error', false);
+    writeJson(els.keyActionOutput, { error: err.message });
+  }
+}
+
+async function loadAuditLogs(filters = {}) {
+  setStatus(els.auditStatus, 'loading...', null);
+  try {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value).trim()) {
+        query.set(key, String(value).trim());
+      }
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const payload = await apiFetch(`/audit-logs${suffix}`);
+    writeJson(els.auditOutput, payload.logs || []);
+    setStatus(els.auditStatus, 'loaded', true);
+  } catch (err) {
+    setStatus(els.auditStatus, 'error', false);
+    writeJson(els.auditOutput, { error: err.message });
+  }
+}
+
+async function createApiKey(event) {
+  event.preventDefault();
+  setStatus(els.createStatus, 'creating...', null);
+
+  const form = new FormData(els.createForm);
+  const payload = {
+    partnerId: form.get('partnerId'),
+    name: form.get('name'),
+    environment: form.get('environment'),
+    role: form.get('role'),
+    scopes: String(form.get('scopes') || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean),
+    notes: form.get('notes') || null,
+  };
+
+  try {
+    const created = await apiFetch('/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    writeJson(els.createOutput, created);
+    setStatus(els.createStatus, 'created', true);
+    await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
+  } catch (err) {
+    setStatus(els.createStatus, 'error', false);
+    writeJson(els.createOutput, { error: err.message });
+  }
+}
+
+async function handleKeyAction(event) {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+
+  const { action, id } = button.dataset;
+  if (!action || !id) return;
+
+  const path =
+    action === 'rotate'
+      ? `/api-keys/${id}/rotate`
+      : action === 'revoke'
+        ? `/api-keys/${id}/revoke`
+        : `/api-keys/${id}/reactivate`;
+
+  try {
+    const payload = await apiFetch(path, { method: 'POST' });
+    writeJson(els.keyActionOutput, payload);
+    await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
+  } catch (err) {
+    writeJson(els.keyActionOutput, { error: err.message, action, id });
+  }
+}
+
+async function loadDashboard() {
+  rememberToken();
+  await Promise.all([loadStats(), loadApiKeys(), loadAuditLogs({ limit: 20 })]);
+}
+
+els.btnLoad.addEventListener('click', loadDashboard);
+els.btnClear.addEventListener('click', () => {
+  localStorage.removeItem(storageKey);
+  els.accessToken.value = '';
+});
+els.createForm.addEventListener('submit', createApiKey);
+els.keysTable.addEventListener('click', handleKeyAction);
+els.btnRefreshKeys.addEventListener('click', loadApiKeys);
+els.auditForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = new FormData(els.auditForm);
+  loadAuditLogs({
+    partnerId: form.get('partnerId'),
+    action: form.get('action'),
+    limit: form.get('limit'),
+  });
+});
+
+restoreToken();
