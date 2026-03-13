@@ -16,18 +16,18 @@
   <body>
     <div class="page-shell">
       <header class="topbar">
-        <div class="topbar-branding">
-          <a class="brand" href="/">
+        <a class="brand" href="/">
+          <span class="brand-mark-wrap">
             <img class="brand-mark" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
-            <span class="brand-copy">
-              <strong>Hope Apartments</strong>
-              <span>API Platform</span>
-            </span>
-          </a>
-          <div class="nav-banner-wrap" aria-hidden="true">
+          </span>
+          <span class="brand-copy">
+            <strong>Hope Apartments</strong>
+            <span>API Platform</span>
+          </span>
+          <span class="brand-banner" aria-hidden="true">
             <img class="nav-banner" src="/site/imgs/hope_banner.png" alt="" />
-          </div>
-        </div>
+          </span>
+        </a>
         <nav class="nav">
           <a href="/docs/public">Public Docs</a>
           <a href="/health">Health</a>
@@ -40,10 +40,10 @@
         <section class="hero">
           <div class="hero-copy">
             <p class="eyebrow">Operational Platform</p>
-            <h1>Welcome to Hope Apartments.</h1>
+            <h1>Hope Apartments API Platform.</h1>
             <p class="lede">
-              A single platform for partner-facing apartment integrations, internal API key
-              operations, and protected administrative tooling.
+              Manage partner-facing apartment integrations, internal API key operations, and
+              protected administrative tooling from one controlled platform.
             </p>
             <div class="hero-actions">
               <a class="button primary" href="/docs/public">Open Partner Docs</a>
@@ -52,20 +52,31 @@
           </div>
           <aside class="hero-panel">
             <div class="hero-panel-body">
-              <div class="hero-logo-frame">
-                <img class="hero-logo" src="/site/imgs/hope-logo.png" alt="Hope Apartments logo" />
+              <div class="panel-stack">
+                <div>
+                  <p class="panel-label">Platform Access</p>
+                  <ul class="link-list">
+                    <li><a href="/docs/public">Public partner documentation</a></li>
+                    <li><a href="/admin/login">Admin console login</a></li>
+                    <li><a href="/admin/dashboard">Admin dashboard</a></li>
+                    <li><a href="/health">System health endpoint</a></li>
+                  </ul>
+                </div>
+                <div class="info-blocks">
+                  <article class="info-block">
+                    <span>Audience</span>
+                    <strong>Partners and internal operations</strong>
+                  </article>
+                  <article class="info-block">
+                    <span>Authentication</span>
+                    <strong>X-API-Key for partners, role-based admin access internally</strong>
+                  </article>
+                  <article class="info-block">
+                    <span>Admin Access</span>
+                    <strong>Restricted to authenticated admin or developer sessions</strong>
+                  </article>
+                </div>
               </div>
-              <p class="panel-label">Quick Access</p>
-              <ul class="link-list">
-                <li><a href="/docs/public">Public partner documentation</a></li>
-                <li><a href="/admin/login">Admin console login</a></li>
-                <li><a href="/admin/dashboard">Admin dashboard</a></li>
-                <li><a href="/health">System health endpoint</a></li>
-              </ul>
-              <p class="panel-note">
-                Administrative features require an authenticated <code>admin</code> or
-                <code>developer</code> session.
-              </p>
             </div>
           </aside>
         </section>
