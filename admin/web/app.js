@@ -4,6 +4,11 @@ const storageKey = 'hope-admin-token';
 
 const els = {
   baseUrl: document.getElementById('baseUrl'),
+  loginForm: document.getElementById('loginForm'),
+  loginEmail: document.getElementById('loginEmail'),
+  loginPassword: document.getElementById('loginPassword'),
+  loginStatus: document.getElementById('loginStatus'),
+  sessionSummary: document.getElementById('sessionSummary'),
   accessToken: document.getElementById('accessToken'),
   btnLoad: document.getElementById('btnLoad'),
   btnClear: document.getElementById('btnClear'),
@@ -44,6 +49,10 @@ function writeJson(el, payload) {
   el.textContent = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
 }
 
+async function parseJsonResponse(res) {
+  return res.json().catch(() => ({}));
+}
+
 async function apiFetch(path, options = {}) {
   const token = getToken();
   const headers = new Headers(options.headers || {});
@@ -57,7 +66,7 @@ async function apiFetch(path, options = {}) {
     headers,
   });
 
-  const payload = await res.json().catch(() => ({}));
+  const payload = await parseJsonResponse(res);
   if (!res.ok) {
     const message = payload?.message || `HTTP ${res.status}`;
     throw new Error(message);
@@ -72,6 +81,20 @@ function rememberToken() {
 function restoreToken() {
   const token = localStorage.getItem(storageKey);
   if (token) els.accessToken.value = token;
+}
+
+function clearSessionSummary() {
+  els.sessionSummary.textContent = 'No active session.';
+}
+
+function renderSession(user) {
+  if (!user) {
+    clearSessionSummary();
+    return;
+  }
+
+  const roles = Array.isArray(user.roles) && user.roles.length ? user.roles.join(', ') : 'no roles';
+  els.sessionSummary.textContent = `${user.email} (${roles})`;
 }
 
 function renderStats(stats) {
@@ -232,10 +255,72 @@ async function loadDashboard() {
   await Promise.all([loadStats(), loadApiKeys(), loadAuditLogs({ limit: 20 })]);
 }
 
+async function fetchCurrentSession() {
+  try {
+    const payload = await apiFetch('/auth/me');
+    renderSession(payload.user || null);
+    return payload.user || null;
+  } catch (_err) {
+    clearSessionSummary();
+    return null;
+  }
+}
+
+async function login(event) {
+  event.preventDefault();
+  setStatus(els.loginStatus, 'signing in...', null);
+
+  const email = String(els.loginEmail.value || '').trim();
+  const password = String(els.loginPassword.value || '');
+  if (!email || !password) {
+    setStatus(els.loginStatus, 'error', false);
+    els.sessionSummary.textContent = 'Email and password are required.';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${normalizedBaseUrl()}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const payload = await parseJsonResponse(res);
+    if (!res.ok) {
+      throw new Error(payload?.message || `HTTP ${res.status}`);
+    }
+
+    els.accessToken.value = payload.accessToken || '';
+    rememberToken();
+    els.loginPassword.value = '';
+    renderSession(payload.user || null);
+    setStatus(els.loginStatus, 'signed in', true);
+    await loadDashboard();
+  } catch (err) {
+    setStatus(els.loginStatus, 'error', false);
+    els.sessionSummary.textContent = err.message;
+  }
+}
+
+async function bootstrapSession() {
+  restoreToken();
+  if (!els.accessToken.value.trim()) {
+    clearSessionSummary();
+    return;
+  }
+
+  setStatus(els.loginStatus, 'checking session...', null);
+  const user = await fetchCurrentSession();
+  setStatus(els.loginStatus, user ? 'session ready' : 'token invalid', Boolean(user));
+}
+
+els.loginForm.addEventListener('submit', login);
 els.btnLoad.addEventListener('click', loadDashboard);
 els.btnClear.addEventListener('click', () => {
   localStorage.removeItem(storageKey);
   els.accessToken.value = '';
+  els.loginPassword.value = '';
+  setStatus(els.loginStatus, 'idle', null);
+  clearSessionSummary();
 });
 els.createForm.addEventListener('submit', createApiKey);
 els.keysTable.addEventListener('click', handleKeyAction);
@@ -250,4 +335,4 @@ els.auditForm.addEventListener('submit', (event) => {
   });
 });
 
-restoreToken();
+bootstrapSession();

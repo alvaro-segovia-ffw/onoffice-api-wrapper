@@ -13,8 +13,8 @@
           <p class="eyebrow">Internal Console</p>
           <h1>Hope Apartments Admin</h1>
           <p class="lede">
-            Paste a Bearer token from an <code>admin</code> or <code>developer</code> user and
-            operate API keys and audit logs from one place.
+            Sign in with an <code>admin</code> or <code>developer</code> user, or paste an
+            existing Bearer token, then operate API keys and audit logs from one place.
           </p>
         </div>
         <div class="hero-card">
@@ -22,6 +22,25 @@
             API Base URL
             <input id="baseUrl" type="text" value="https://api.hope-apartments.de" />
           </label>
+          <form id="loginForm" class="stack">
+            <div class="inline-fields">
+              <label>
+                Email
+                <input id="loginEmail" name="email" type="email" placeholder="admin@example.com" />
+              </label>
+              <label>
+                Password
+                <input id="loginPassword" name="password" type="password" placeholder="Password" />
+              </label>
+            </div>
+            <div class="actions">
+              <button id="btnLogin" type="submit">Sign In</button>
+            </div>
+          </form>
+          <div class="session-bar">
+            <span id="loginStatus" class="status">idle</span>
+            <span id="sessionSummary" class="session-summary">No active session.</span>
+          </div>
           <label>
             Bearer Token
             <textarea id="accessToken" rows="5" placeholder="Paste JWT access token"></textarea>

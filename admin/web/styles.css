@@ -52,6 +52,18 @@ body {
   padding: 20px;
 }
 
+.stack {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 10px;
+}
+
+.inline-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .eyebrow {
   margin: 0 0 8px;
   letter-spacing: 0.12em;
@@ -116,6 +128,20 @@ textarea {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.session-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0 12px;
+}
+
+.session-summary {
+  color: var(--muted);
+  font-size: 14px;
+  text-align: right;
 }
 
 button {
@@ -275,6 +301,7 @@ code {
   .hero,
   .grid,
   .stats-grid,
+  .inline-fields,
   .form-grid,
   .audit-filter {
     grid-template-columns: 1fr;
@@ -282,5 +309,10 @@ code {
 
   .shell {
     width: min(1380px, calc(100% - 16px));
+  }
+
+  .session-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
