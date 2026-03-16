@@ -5,12 +5,6 @@
     "version": "1.0.0",
     "description": "Public partner-facing documentation for the Hope Apartments API. This spec only includes the integration surface required by external partners."
   },
-  "servers": [
-    {
-      "url": "https://api.hope-apartments.de",
-      "description": "Production"
-    }
-  ],
   "tags": [
     {
       "name": "Apartments",
