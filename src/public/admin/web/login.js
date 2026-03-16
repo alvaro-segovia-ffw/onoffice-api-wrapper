@@ -4,7 +4,6 @@ const dashboardPath = '/admin/dashboard';
 const allowedRoles = new Set(['admin', 'developer']);
 
 const els = {
-  baseUrl: document.getElementById('baseUrl'),
   loginForm: document.getElementById('loginForm'),
   loginEmail: document.getElementById('loginEmail'),
   loginPassword: document.getElementById('loginPassword'),
@@ -21,7 +20,7 @@ function setStatus(el, label, ok) {
 }
 
 function normalizedBaseUrl() {
-  return (els.baseUrl.value || '').trim().replace(/\/+$/, '') || window.location.origin;
+  return window.location.origin;
 }
 
 function setSessionSummary(text) {

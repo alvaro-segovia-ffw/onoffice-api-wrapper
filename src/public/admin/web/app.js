@@ -3,7 +3,6 @@
 const loginPath = '/admin/login';
 
 const els = {
-  baseUrl: document.getElementById('baseUrl'),
   loginStatus: document.getElementById('loginStatus'),
   sessionSummary: document.getElementById('sessionSummary'),
   btnLoad: document.getElementById('btnLoad'),
@@ -29,7 +28,7 @@ function setStatus(el, label, ok) {
 }
 
 function normalizedBaseUrl() {
-  return (els.baseUrl.value || '').trim().replace(/\/+$/, '') || window.location.origin;
+  return window.location.origin;
 }
 
 function redirectToLogin() {
