@@ -5,12 +5,6 @@
     "version": "1.0.0",
     "description": "Swagger documentation for the Hope Apartments API. Partner apartment access uses X-API-Key. Internal docs are protected with admin session or Bearer JWT auth."
   },
-  "servers": [
-    {
-      "url": "https://api.hope-apartments.de",
-      "description": "Railway development"
-    }
-  ],
   "tags": [
     {
       "name": "System",
