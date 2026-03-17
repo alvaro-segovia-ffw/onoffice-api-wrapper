@@ -4,12 +4,10 @@
   --admin-muted: #5c524a;
   --admin-line: rgba(111, 82, 53, 0.16);
   --admin-panel: rgba(255, 250, 244, 0.82);
-  --admin-navy: rgba(30, 20, 18, 0.92);
   --admin-brand: #b7562b;
   --admin-brand-dark: #873917;
   --admin-ok: #22785d;
   --admin-err: #b63f38;
-  --admin-warn: #9d6b15;
 }
 
 * {
@@ -74,7 +72,8 @@ body.admin-body {
 }
 
 .brand-text strong,
-.hero-title,
+.sidebar-title,
+#viewTitle,
 h2,
 h3 {
   font-family: "Cormorant Garamond", Georgia, serif;
@@ -134,33 +133,109 @@ h3 {
   color: #713113;
 }
 
-.admin-hero,
 .surface-card {
   background:
     linear-gradient(180deg, rgba(255, 251, 246, 0.88), rgba(255, 247, 240, 0.8)),
     var(--admin-panel);
   border: 1px solid var(--admin-line);
   box-shadow: 0 30px 68px rgba(55, 38, 24, 0.12);
-}
-
-.hero-side {
-  background:
-    radial-gradient(circle at top left, rgba(183, 86, 43, 0.12), transparent 42%),
-    rgba(34, 22, 17, 0.03);
-}
-
-.surface-panel {
-  height: 100%;
-  padding: 1.35rem;
-  border-radius: 1.5rem;
-  background: rgba(255, 252, 248, 0.84);
-  border: 1px solid var(--admin-line);
-}
-
-.surface-card {
   border-radius: 1.6rem;
   padding: 1.5rem;
   height: 100%;
+}
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.sidebar-card {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(183, 86, 43, 0.12), transparent 42%),
+    linear-gradient(180deg, rgba(255, 251, 246, 0.92), rgba(255, 247, 240, 0.84)),
+    var(--admin-panel);
+}
+
+.sidebar-title {
+  line-height: 0.92;
+}
+
+.console-nav {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.console-nav-link {
+  width: 100%;
+  padding: 1rem 1.05rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.64);
+  text-align: left;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.console-nav-link:hover,
+.console-nav-link.active {
+  transform: translateX(4px);
+  border-color: rgba(183, 86, 43, 0.28);
+  background: rgba(183, 86, 43, 0.1);
+}
+
+.console-nav-label,
+.console-nav-meta {
+  display: block;
+}
+
+.console-nav-label {
+  color: var(--admin-ink);
+  font-weight: 700;
+}
+
+.console-nav-meta {
+  margin-top: 0.28rem;
+  color: var(--admin-muted);
+  font-size: 0.92rem;
+}
+
+.sidebar-links {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.admin-main {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.topline-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.console-view {
+  display: none;
+}
+
+.console-view.active {
+  display: block;
 }
 
 .eyebrow,
@@ -175,12 +250,6 @@ h3 {
   text-transform: uppercase;
 }
 
-.hero-title {
-  line-height: 0.9;
-  letter-spacing: -0.03em;
-}
-
-.lede,
 .section-copy,
 .helper-copy,
 .session-summary,
@@ -189,7 +258,6 @@ th {
   color: var(--admin-muted);
 }
 
-.lede,
 .section-copy,
 .helper-copy {
   line-height: 1.7;
@@ -268,6 +336,10 @@ th {
   word-break: break-word;
 }
 
+.console-output-tall {
+  min-height: 30rem;
+}
+
 .admin-table {
   --bs-table-bg: transparent;
 }
@@ -325,11 +397,6 @@ th {
   font-weight: 700;
 }
 
-.auth-aside,
-.auth-card {
-  min-height: 100%;
-}
-
 .access-row {
   padding: 1rem 1.1rem;
   border-radius: 1.2rem;
@@ -352,6 +419,11 @@ th {
   background: rgba(255, 255, 255, 0.62);
 }
 
+.session-stack {
+  display: grid;
+  gap: 1rem;
+}
+
 code {
   font-family: "IBM Plex Sans", sans-serif;
   padding: 0.12rem 0.4rem;
@@ -362,6 +434,20 @@ code {
 pre code {
   background: transparent;
   padding: 0;
+}
+
+@media (max-width: 1199.98px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+  }
+
+  .console-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 991.98px) {
@@ -379,14 +465,31 @@ pre code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .panel-head {
+  .panel-head,
+  .admin-topline {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .topline-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .console-nav {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 575.98px) {
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .topline-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

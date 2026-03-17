@@ -2,6 +2,25 @@
 
 const loginPath = '/admin/login';
 
+const VIEW_CONTENT = Object.freeze({
+  overview: {
+    title: 'Overview',
+    description: 'Session state, API key telemetry and quick operational refresh.',
+  },
+  provisioning: {
+    title: 'Create Key',
+    description: 'Provision new partner credentials without leaving the console shell.',
+  },
+  keys: {
+    title: 'Manage Keys',
+    description: 'Inspect existing keys and execute rotate, revoke or reactivate flows.',
+  },
+  audit: {
+    title: 'Audit Logs',
+    description: 'Inspect partner activity, failed auth and operational events in one place.',
+  },
+});
+
 const els = {
   loginStatus: document.getElementById('loginStatus'),
   sessionSummary: document.getElementById('sessionSummary'),
@@ -18,6 +37,10 @@ const els = {
   auditStatus: document.getElementById('auditStatus'),
   auditForm: document.getElementById('auditForm'),
   auditOutput: document.getElementById('auditOutput'),
+  navLinks: Array.from(document.querySelectorAll('[data-view-target]')),
+  views: Array.from(document.querySelectorAll('[data-view]')),
+  viewTitle: document.getElementById('viewTitle'),
+  viewDescription: document.getElementById('viewDescription'),
 };
 
 function setStatus(el, label, ok) {
@@ -85,6 +108,25 @@ function appendTextElement(parent, tagName, text, className) {
   element.textContent = text;
   parent.appendChild(element);
   return element;
+}
+
+function setActiveView(viewName) {
+  const content = VIEW_CONTENT[viewName] || VIEW_CONTENT.overview;
+
+  els.viewTitle.textContent = content.title;
+  els.viewDescription.textContent = content.description;
+
+  for (const link of els.navLinks) {
+    const isActive = link.dataset.viewTarget === viewName;
+    link.classList.toggle('active', isActive);
+    link.setAttribute('aria-current', isActive ? 'page' : 'false');
+  }
+
+  for (const view of els.views) {
+    const isActive = view.dataset.view === viewName;
+    view.classList.toggle('active', isActive);
+    view.hidden = !isActive;
+  }
 }
 
 function renderStats(stats) {
@@ -203,6 +245,12 @@ function renderApiKeys(apiKeys) {
   }
 }
 
+function handleAuthError(err) {
+  if (/session|authorized|role/i.test(err.message)) {
+    redirectToLogin();
+  }
+}
+
 async function loadStats() {
   setStatus(els.statsStatus, 'loading...', null);
   try {
@@ -212,7 +260,7 @@ async function loadStats() {
   } catch (err) {
     setStatus(els.statsStatus, 'error', false);
     writeJson(els.keyActionOutput, { error: err.message });
-    if (/session|authorized|role/i.test(err.message)) redirectToLogin();
+    handleAuthError(err);
   }
 }
 
@@ -225,7 +273,7 @@ async function loadApiKeys() {
   } catch (err) {
     setStatus(els.keysStatus, 'error', false);
     writeJson(els.keyActionOutput, { error: err.message });
-    if (/session|authorized|role/i.test(err.message)) redirectToLogin();
+    handleAuthError(err);
   }
 }
 
@@ -245,7 +293,7 @@ async function loadAuditLogs(filters = {}) {
   } catch (err) {
     setStatus(els.auditStatus, 'error', false);
     writeJson(els.auditOutput, { error: err.message });
-    if (/session|authorized|role/i.test(err.message)) redirectToLogin();
+    handleAuthError(err);
   }
 }
 
@@ -273,11 +321,12 @@ async function createApiKey(event) {
     });
     writeJson(els.createOutput, created);
     setStatus(els.createStatus, 'created', true);
+    setActiveView('keys');
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
     setStatus(els.createStatus, 'error', false);
     writeJson(els.createOutput, { error: err.message });
-    if (/session|authorized|role/i.test(err.message)) redirectToLogin();
+    handleAuthError(err);
   }
 }
 
@@ -301,7 +350,7 @@ async function handleKeyAction(event) {
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
     writeJson(els.keyActionOutput, { error: err.message, action, id });
-    if (/session|authorized|role/i.test(err.message)) redirectToLogin();
+    handleAuthError(err);
   }
 }
 
@@ -315,8 +364,19 @@ async function loadDashboard() {
   await Promise.all([loadStats(), loadApiKeys(), loadAuditLogs({ limit: 20 })]);
 }
 
+function bindViewNavigation() {
+  for (const link of els.navLinks) {
+    link.addEventListener('click', () => {
+      setActiveView(link.dataset.viewTarget || 'overview');
+    });
+  }
+}
+
 async function bootstrap() {
+  bindViewNavigation();
   setStatus(els.loginStatus, 'checking session...', null);
+  setActiveView('overview');
+
   try {
     const user = await fetchCurrentSession();
     if (!user) {
@@ -337,6 +397,7 @@ els.keysTable.addEventListener('click', handleKeyAction);
 els.btnRefreshKeys.addEventListener('click', loadApiKeys);
 els.auditForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  setActiveView('audit');
   const form = new FormData(els.auditForm);
   loadAuditLogs({
     partnerId: form.get('partnerId'),
