@@ -6,7 +6,7 @@ import {
   getSelectedApiKeyId,
   setApiKeys,
 } from './admin-state.js';
-import { appendTextElement, clearChildren } from './dom-utils.js';
+import { appendTextElement, clearChildren, setStatus } from './dom-utils.js';
 
 export function renderSession(user) {
   if (!user) {
@@ -98,6 +98,8 @@ export function renderKeyDetail(apiKey) {
 
   if (!apiKey) {
     els.keyDetailActions.hidden = true;
+    els.keyDetailForm.hidden = true;
+    els.keyDetailForm.dataset.keyId = '';
     clearChildren(els.keyDetailActions);
     appendTextElement(els.keyDetailCard, 'p', 'Select an API key from the directory.', 'empty mb-0');
     return;
@@ -126,7 +128,18 @@ export function renderKeyDetail(apiKey) {
 
   clearChildren(els.keyDetailActions);
   els.keyDetailActions.hidden = false;
+  els.keyDetailForm.hidden = false;
+  els.keyDetailForm.dataset.keyId = apiKey.publicId || '';
   els.keyDetailActions.appendChild(renderKeyActionButtons(apiKey));
+
+  els.keyDetailName.value = apiKey.name || '';
+  els.keyDetailScopes.value = Array.isArray(apiKey.scopes) ? apiKey.scopes.join(', ') : '';
+  els.keyDetailNotes.value = apiKey.notes || '';
+  els.keyDetailExpiresAt.value = apiKey.expiresAt ? String(apiKey.expiresAt).slice(0, 16) : '';
+  els.keyDetailAccessFields.value = Array.isArray(apiKey.accessPolicy?.apartments?.fields)
+    ? apiKey.accessPolicy.apartments.fields.join(', ')
+    : '';
+  setStatus(els.keyDetailStatus, apiKey.isActive ? 'active' : 'revoked', apiKey.isActive);
 }
 
 export function renderApiKeys(apiKeys) {

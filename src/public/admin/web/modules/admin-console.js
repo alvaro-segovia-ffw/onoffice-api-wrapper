@@ -3,6 +3,7 @@ import {
   createApiKey,
   fetchCurrentSession,
   handleAuditSubmit,
+  handleKeyDetailSubmit,
   handleKeyAction,
   handleKeySelection,
   loadApiKeys,
@@ -16,6 +17,7 @@ function bindEvents() {
   els.btnLoad.addEventListener('click', loadDashboard);
   els.createForm.addEventListener('submit', createApiKey);
   els.keysTable.addEventListener('click', handleKeySelection);
+  els.keyDetailForm.addEventListener('submit', handleKeyDetailSubmit);
   els.keyDetailActions.addEventListener('click', handleKeyAction);
   els.btnRefreshKeys.addEventListener('click', loadApiKeys);
   els.auditForm.addEventListener('submit', handleAuditSubmit);

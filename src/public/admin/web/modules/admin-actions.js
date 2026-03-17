@@ -11,6 +11,34 @@ function handleAuthError(err) {
   }
 }
 
+function normalizePartnerId(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function parseCommaSeparatedList(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function buildAccessPolicyFromFields(value) {
+  const fields = parseCommaSeparatedList(value);
+  return fields.length > 0
+    ? {
+        apartments: {
+          fields,
+        },
+      }
+    : {};
+}
+
 export async function fetchCurrentSession() {
   const payload = await apiFetch('/admin/session');
   renderSession(payload.user || null);
@@ -72,15 +100,15 @@ export async function createApiKey(event) {
   setStatus(els.createStatus, 'creating...', null);
 
   const form = new FormData(els.createForm);
+  const normalizedPartnerId = normalizePartnerId(form.get('partnerId'));
+  els.createPartnerId.value = normalizedPartnerId;
+
   const payload = {
-    partnerId: form.get('partnerId'),
-    name: form.get('name'),
+    partnerId: normalizedPartnerId,
+    name: String(form.get('name') || '').trim(),
     environment: form.get('environment'),
     role: form.get('role'),
-    scopes: String(form.get('scopes') || '')
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean),
+    scopes: parseCommaSeparatedList(form.get('scopes')),
     notes: form.get('notes') || null,
   };
 
@@ -91,6 +119,10 @@ export async function createApiKey(event) {
     });
     writeJson(els.createOutput, created);
     setStatus(els.createStatus, 'created', true);
+    setSelectedApiKeyId(created.apiKey?.publicId || null);
+    els.createForm.reset();
+    els.createPartnerId.value = '';
+    els.createName.value = '';
     setActiveView('keys');
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
@@ -117,9 +149,43 @@ export async function handleKeyAction(event) {
   try {
     const payload = await apiFetch(path, { method: 'POST' });
     writeJson(els.keyActionOutput, payload);
+    if (payload?.apiKey?.publicId) {
+      setSelectedApiKeyId(payload.apiKey.publicId);
+    }
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
     writeJson(els.keyActionOutput, { error: err.message, action, id });
+    handleAuthError(err);
+  }
+}
+
+export async function handleKeyDetailSubmit(event) {
+  event.preventDefault();
+  const selectedApiKey = getApiKeys().find((apiKey) => apiKey.publicId === els.keyDetailForm.dataset.keyId);
+  if (!selectedApiKey) return;
+
+  setStatus(els.keyDetailStatus, 'saving...', null);
+
+  const payload = {
+    name: String(els.keyDetailName.value || '').trim(),
+    scopes: parseCommaSeparatedList(els.keyDetailScopes.value),
+    notes: String(els.keyDetailNotes.value || '').trim() || null,
+    expiresAt: String(els.keyDetailExpiresAt.value || '').trim() || null,
+    accessPolicy: buildAccessPolicyFromFields(els.keyDetailAccessFields.value),
+  };
+
+  try {
+    const result = await apiFetch(`/api-keys/${selectedApiKey.publicId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    setStatus(els.keyDetailStatus, 'saved', true);
+    writeJson(els.keyActionOutput, result);
+    setSelectedApiKeyId(result.apiKey?.publicId || selectedApiKey.publicId);
+    await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
+  } catch (err) {
+    setStatus(els.keyDetailStatus, 'error', false);
+    writeJson(els.keyActionOutput, { error: err.message });
     handleAuthError(err);
   }
 }
