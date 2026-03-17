@@ -11,6 +11,7 @@ const {
   requireAdminPageSession,
   userHasAdminConsoleAccess,
 } = require('../middlewares/require-admin-operator');
+const { requireSameOrigin } = require('../middlewares/require-same-origin');
 const { validateLoginInput } = require('../validation/auth.validation');
 
 function buildAdminRouter({
@@ -40,6 +41,7 @@ function buildAdminRouter({
 
   router.post(
     '/login',
+    requireSameOrigin,
     loginRateLimitMiddleware,
     requireConfiguredAuth,
     asyncHandler(async (req, res) => {
@@ -66,7 +68,7 @@ function buildAdminRouter({
     })
   );
 
-  router.post('/logout', (_req, res) => {
+  router.post('/logout', requireSameOrigin, (_req, res) => {
     clearAdminSessionCookie(res);
     return res.status(204).end();
   });

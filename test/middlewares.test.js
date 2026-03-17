@@ -16,6 +16,11 @@ const { adminCookieName, extractAdminToken } = require('../src/server/middleware
 const { DOCS_REQUIRED_PERMISSION } = require('../middlewares/docs-access');
 const { errorHandler } = require('../src/server/middlewares/error-handler');
 const { requirePermission } = require('../src/server/middlewares/require-permission');
+const {
+  getSourceOrigin,
+  requireSameOrigin,
+  requireSameOriginForCookieAuth,
+} = require('../src/server/middlewares/require-same-origin');
 const { requireRole } = require('../middlewares/require-role');
 const { requireApiKeyScope } = require('../src/server/middlewares/require-api-key-scope');
 const { createInMemoryRateLimit } = require('../src/server/middlewares/request-rate-limit');
@@ -117,6 +122,85 @@ test('parseCookieHeader ignores malformed cookie encoding', () => {
   assert.deepEqual(parseCookieHeader('good=value; broken=%E0%A4%A'), {
     good: 'value',
   });
+});
+
+test('requireSameOrigin allows same-host origin and rejects cross-origin requests', () => {
+  const allowedReq = {
+    header(name) {
+      const normalized = String(name).toLowerCase();
+      if (normalized === 'origin') return 'https://admin.example.com';
+      if (normalized === 'host') return 'admin.example.com';
+      return '';
+    },
+  };
+  const blockedReq = {
+    header(name) {
+      const normalized = String(name).toLowerCase();
+      if (normalized === 'origin') return 'https://evil.example.com';
+      if (normalized === 'host') return 'admin.example.com';
+      return '';
+    },
+  };
+
+  let allowedNextCalled = false;
+  let blockedError = null;
+
+  requireSameOrigin(allowedReq, createResponseDouble(), (err) => {
+    assert.equal(err, undefined);
+    allowedNextCalled = true;
+  });
+
+  requireSameOrigin(blockedReq, createResponseDouble(), (err) => {
+    blockedError = err;
+  });
+
+  assert.equal(allowedNextCalled, true);
+  assert.equal(blockedError instanceof PublicError, true);
+  assert.equal(blockedError.message, 'Cross-origin request blocked.');
+});
+
+test('getSourceOrigin falls back to referer origin', () => {
+  const req = {
+    header(name) {
+      const normalized = String(name).toLowerCase();
+      if (normalized === 'referer') return 'https://admin.example.com/dashboard';
+      return '';
+    },
+  };
+
+  assert.equal(getSourceOrigin(req)?.origin, 'https://admin.example.com');
+});
+
+test('requireSameOriginForCookieAuth only checks cookie-authenticated admin requests', () => {
+  const bearerReq = {
+    adminAuth: { authMethod: 'bearer' },
+    header() {
+      return '';
+    },
+  };
+  const cookieReq = {
+    adminAuth: { authMethod: 'cookie' },
+    header(name) {
+      const normalized = String(name).toLowerCase();
+      if (normalized === 'host') return 'admin.example.com';
+      return '';
+    },
+  };
+
+  let bearerNextCalled = false;
+  let cookieError = null;
+
+  requireSameOriginForCookieAuth(bearerReq, createResponseDouble(), (err) => {
+    assert.equal(err, undefined);
+    bearerNextCalled = true;
+  });
+
+  requireSameOriginForCookieAuth(cookieReq, createResponseDouble(), (err) => {
+    cookieError = err;
+  });
+
+  assert.equal(bearerNextCalled, true);
+  assert.equal(cookieError instanceof PublicError, true);
 });
 
 test('admin role resolves the full internal permission set', () => {

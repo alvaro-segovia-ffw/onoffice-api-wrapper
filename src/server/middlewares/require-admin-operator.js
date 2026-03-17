@@ -31,7 +31,8 @@ async function authenticateAdminOperator(req, options = {}) {
     });
   }
 
-  const token = extractAdminToken(req, options);
+  const bearerToken = extractBearerToken(req);
+  const token = bearerToken || extractAdminToken(req, options);
   if (!token) {
     throw new PublicError({
       statusCode: 401,
@@ -68,7 +69,12 @@ async function authenticateAdminOperator(req, options = {}) {
     });
   }
 
-  return { token, claims, user };
+  return {
+    token,
+    claims,
+    user,
+    authMethod: bearerToken ? 'bearer' : 'cookie',
+  };
 }
 
 async function requireAdminOperator(req, _res, next) {
@@ -107,7 +113,6 @@ module.exports = {
   adminCookieName,
   authenticateAdminOperator,
   extractAdminToken,
-  requireAdminBearerOperator,
   requireAdminOperator,
   requireAdminPageSession,
   userHasAdminConsoleAccess,
