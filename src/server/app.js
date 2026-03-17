@@ -35,6 +35,7 @@ const {
   requireAdminPageSession,
   userHasAdminConsoleAccess,
 } = require('./middlewares/require-admin-operator');
+const { requireApiKeyScope } = require('./middlewares/require-api-key-scope');
 const { requireConfiguredAuth } = require('./middlewares/require-configured-auth');
 const { requireAuth } = require('./middlewares/require-auth');
 
@@ -717,42 +718,48 @@ app.patch('/api-keys/:id', requireConfiguredAuth, requireAdminOperator, async (r
   }
 });
 
-app.get('/apartments', rateLimitMiddleware, requireApiKey, async (req, res) => {
-  if (isLiveRequestRunning) {
-    return res.status(409).json({
-      error: 'Conflict',
-      message: 'Another live onOffice sync is already running.',
-    });
+app.get(
+  '/apartments',
+  rateLimitMiddleware,
+  requireApiKey,
+  requireApiKeyScope('apartments:read'),
+  async (req, res) => {
+    if (isLiveRequestRunning) {
+      return res.status(409).json({
+        error: 'Conflict',
+        message: 'Another live onOffice sync is already running.',
+      });
+    }
+
+    isLiveRequestRunning = true;
+    const startedAt = new Date();
+
+    try {
+      const apartments = await fetchApartmentsLive();
+      const finishedAt = new Date();
+
+      res.setHeader('x-data-source', 'live-onoffice');
+      return res.json({
+        apartments,
+        meta: {
+          requestedBy: req.authActor.partnerId,
+          authType: req.authActor.type,
+          count: apartments.length,
+          startedAt: startedAt.toISOString(),
+          finishedAt: finishedAt.toISOString(),
+          durationMs: finishedAt.getTime() - startedAt.getTime(),
+        },
+      });
+    } catch (err) {
+      return res.status(500).json({
+        error: 'LiveFetchFailed',
+        message: err.message || 'Unknown error',
+      });
+    } finally {
+      isLiveRequestRunning = false;
+    }
   }
-
-  isLiveRequestRunning = true;
-  const startedAt = new Date();
-
-  try {
-    const apartments = await fetchApartmentsLive();
-    const finishedAt = new Date();
-
-    res.setHeader('x-data-source', 'live-onoffice');
-    return res.json({
-      apartments,
-      meta: {
-        requestedBy: req.authActor.partnerId,
-        authType: req.authActor.type,
-        count: apartments.length,
-        startedAt: startedAt.toISOString(),
-        finishedAt: finishedAt.toISOString(),
-        durationMs: finishedAt.getTime() - startedAt.getTime(),
-      },
-    });
-  } catch (err) {
-    return res.status(500).json({
-      error: 'LiveFetchFailed',
-      message: err.message || 'Unknown error',
-    });
-  } finally {
-    isLiveRequestRunning = false;
-  }
-});
+);
 
 let isShuttingDown = false;
 
