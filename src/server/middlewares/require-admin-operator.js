@@ -1,26 +1,43 @@
 'use strict';
 
 const { getUserProfile, isAuthConfigured } = require('../../../lib/auth-service');
-const { getCookie } = require('../../../lib/cookies');
+const { getCookie, serializeCookie } = require('../../../lib/cookies');
 const { verifyAccessToken } = require('../../../lib/jwt');
 const { PublicError } = require('../errors/public-error');
 const { extractBearerToken } = require('./require-auth');
 
 const allowedRoles = new Set(['admin', 'developer']);
 const adminCookieName = 'hope_admin_session';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 function userHasAdminConsoleAccess(user) {
   const roles = Array.isArray(user?.roles) ? user.roles : [];
   return roles.some((role) => allowedRoles.has(role));
 }
 
-function extractAdminToken(req) {
+function extractAdminToken(req, options = {}) {
+  const { allowCookie = true } = options;
   const bearer = extractBearerToken(req);
   if (bearer) return bearer;
+  if (!allowCookie) return null;
   return getCookie(req, adminCookieName);
 }
 
-async function authenticateAdminOperator(req) {
+function clearAdminSessionCookie(res) {
+  res.setHeader(
+    'Set-Cookie',
+    serializeCookie(adminCookieName, '', {
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: IS_PRODUCTION,
+      path: '/',
+      maxAge: 0,
+      expires: new Date(0),
+    })
+  );
+}
+
+async function authenticateAdminOperator(req, options = {}) {
   if (!isAuthConfigured()) {
     throw new PublicError({
       statusCode: 503,
@@ -29,12 +46,13 @@ async function authenticateAdminOperator(req) {
     });
   }
 
-  const token = extractAdminToken(req);
+  const bearerToken = extractBearerToken(req);
+  const token = bearerToken || extractAdminToken(req, options);
   if (!token) {
     throw new PublicError({
       statusCode: 401,
       code: 'UNAUTHORIZED',
-      message: 'Missing admin session or Bearer token.',
+      message: options.allowCookie === false ? 'Missing Bearer token.' : 'Missing admin session or Bearer token.',
     });
   }
 
@@ -66,12 +84,31 @@ async function authenticateAdminOperator(req) {
     });
   }
 
-  return { token, claims, user };
+  return {
+    token,
+    claims,
+    user,
+    authMethod: bearerToken ? 'bearer' : 'cookie',
+  };
 }
 
 async function requireAdminOperator(req, _res, next) {
   try {
     const auth = await authenticateAdminOperator(req);
+    req.adminAuth = auth;
+    req.auth = auth.claims;
+    return next();
+  } catch (err) {
+    if (!extractBearerToken(req) && getCookie(req, adminCookieName) && err instanceof PublicError && err.statusCode === 401) {
+      clearAdminSessionCookie(_res);
+    }
+    return next(err);
+  }
+}
+
+async function requireAdminBearerOperator(req, _res, next) {
+  try {
+    const auth = await authenticateAdminOperator(req, { allowCookie: false });
     req.adminAuth = auth;
     req.auth = auth.claims;
     return next();
@@ -86,6 +123,9 @@ async function requireAdminPageSession(req, res, next) {
     req.adminAuth = auth;
     return next();
   } catch (_err) {
+    if (!extractBearerToken(req) && getCookie(req, adminCookieName)) {
+      clearAdminSessionCookie(res);
+    }
     return res.redirect('/admin/login');
   }
 }
@@ -93,6 +133,8 @@ async function requireAdminPageSession(req, res, next) {
 module.exports = {
   adminCookieName,
   authenticateAdminOperator,
+  clearAdminSessionCookie,
+  extractAdminToken,
   requireAdminOperator,
   requireAdminPageSession,
   userHasAdminConsoleAccess,

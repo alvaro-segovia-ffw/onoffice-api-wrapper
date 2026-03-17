@@ -6,26 +6,30 @@ const {
   createApiKey,
   findApiKeyByIdentifier,
   getApiKeyStats,
-  isApiKeyServiceConfigured,
   listApiKeys,
   reactivateApiKey,
   revokeApiKey,
   rotateApiKey,
   updateApiKey,
 } = require('../../../lib/api-key-service');
-const { isApiKeyScopeValidationError } = require('../../../lib/api-key-scopes');
 const { writeAuditLog } = require('../../../lib/audit-service');
 const { INTERNAL_PERMISSIONS } = require('../authz/internal-permissions');
 const { PublicError } = require('../errors/public-error');
 const { requireAdminOperator } = require('../middlewares/require-admin-operator');
 const { requireConfiguredAuth } = require('../middlewares/require-configured-auth');
+const { requireConfiguredApiKeyService } = require('../middlewares/require-configured-service');
 const { requirePermission } = require('../middlewares/require-permission');
-
-function toApiKeyResponse(apiKey) {
-  if (!apiKey) return null;
-  const { id: _internalId, ...publicApiKey } = apiKey;
-  return publicApiKey;
-}
+const { requireSameOriginForCookieAuth } = require('../middlewares/require-same-origin');
+const {
+  serializeApiKey,
+  serializeApiKeyList,
+  serializeRotatedApiKey,
+} = require('../serializers/api-key.serializer');
+const {
+  validateApiKeyIdentifierParam,
+  validateCreateApiKeyInput,
+  validateUpdateApiKeyInput,
+} = require('../validation/api-key.validation');
 
 function buildApiKeysRouter({ asyncHandler }) {
   const router = Router();
@@ -33,36 +37,22 @@ function buildApiKeysRouter({ asyncHandler }) {
   router.get(
     '/',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_READ),
     asyncHandler(async (_req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
       const apiKeys = await listApiKeys();
-      return res.json({ apiKeys: apiKeys.map(toApiKeyResponse) });
+      return res.json({ apiKeys: serializeApiKeyList(apiKeys) });
     })
   );
 
   router.get(
     '/stats',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_READ),
     asyncHandler(async (_req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
       const stats = await getApiKeyStats();
       return res.json({ stats });
     })
@@ -71,18 +61,12 @@ function buildApiKeysRouter({ asyncHandler }) {
   router.get(
     '/:id',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_READ),
     asyncHandler(async (req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
-      const apiKey = await findApiKeyByIdentifier(req.params.id);
+      const apiKeyId = validateApiKeyIdentifierParam(req.params);
+      const apiKey = await findApiKeyByIdentifier(apiKeyId);
       if (!apiKey) {
         throw new PublicError({
           statusCode: 404,
@@ -90,57 +74,23 @@ function buildApiKeysRouter({ asyncHandler }) {
           message: 'API key not found.',
         });
       }
-      return res.json({ apiKey: toApiKeyResponse(apiKey) });
+      return res.json({ apiKey: serializeApiKey(apiKey) });
     })
   );
 
   router.post(
     '/',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
+    requireSameOriginForCookieAuth,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_CREATE),
     asyncHandler(async (req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
-      const partnerId = String(req.body?.partnerId || '').trim();
-      const name = String(req.body?.name || '').trim();
-
-      if (!partnerId || !name) {
-        throw new PublicError({
-          statusCode: 400,
-          code: 'BAD_REQUEST',
-          message: 'partnerId and name are required.',
-        });
-      }
-
-      let created;
-      try {
-        created = await createApiKey({
-          ownerUserId: req.auth.sub,
-          partnerId,
-          name,
-          environment: req.body?.environment,
-          role: req.body?.role,
-          scopes: req.body?.scopes,
-          notes: req.body?.notes,
-          expiresAt: req.body?.expiresAt,
-        });
-      } catch (err) {
-        if (isApiKeyScopeValidationError(err)) {
-          throw new PublicError({
-            statusCode: 400,
-            code: 'INVALID_SCOPES',
-            message: 'Invalid API key scopes.',
-          });
-        }
-        throw err;
-      }
+      const validatedInput = validateCreateApiKeyInput(req.body);
+      const created = await createApiKey({
+        ownerUserId: req.auth.sub,
+        ...validatedInput,
+      });
 
       await writeAuditLog({
         actorUserId: req.auth.sub,
@@ -157,7 +107,7 @@ function buildApiKeysRouter({ asyncHandler }) {
       });
 
       return res.status(201).json({
-        apiKey: toApiKeyResponse(created.apiKey),
+        apiKey: serializeApiKey(created.apiKey),
         secret: created.secret,
       });
     })
@@ -166,18 +116,13 @@ function buildApiKeysRouter({ asyncHandler }) {
   router.post(
     '/:id/revoke',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
+    requireSameOriginForCookieAuth,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_REVOKE),
     asyncHandler(async (req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
-      const existing = await findApiKeyByIdentifier(req.params.id);
+      const apiKeyId = validateApiKeyIdentifierParam(req.params);
+      const existing = await findApiKeyByIdentifier(apiKeyId);
       if (!existing) {
         throw new PublicError({
           statusCode: 404,
@@ -186,7 +131,7 @@ function buildApiKeysRouter({ asyncHandler }) {
         });
       }
 
-      const revoked = await revokeApiKey(req.params.id);
+      const revoked = await revokeApiKey(apiKeyId);
       await writeAuditLog({
         actorUserId: req.auth.sub,
         action: 'api_key_revoked',
@@ -200,25 +145,20 @@ function buildApiKeysRouter({ asyncHandler }) {
         },
       });
 
-      return res.json({ apiKey: toApiKeyResponse(revoked) });
+      return res.json({ apiKey: serializeApiKey(revoked) });
     })
   );
 
   router.post(
     '/:id/reactivate',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
+    requireSameOriginForCookieAuth,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_UPDATE),
     asyncHandler(async (req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
-      const existing = await findApiKeyByIdentifier(req.params.id);
+      const apiKeyId = validateApiKeyIdentifierParam(req.params);
+      const existing = await findApiKeyByIdentifier(apiKeyId);
       if (!existing) {
         throw new PublicError({
           statusCode: 404,
@@ -227,7 +167,7 @@ function buildApiKeysRouter({ asyncHandler }) {
         });
       }
 
-      const apiKey = await reactivateApiKey(req.params.id);
+      const apiKey = await reactivateApiKey(apiKeyId);
       await writeAuditLog({
         actorUserId: req.auth.sub,
         action: 'api_key_reactivated',
@@ -241,25 +181,20 @@ function buildApiKeysRouter({ asyncHandler }) {
         },
       });
 
-      return res.json({ apiKey: toApiKeyResponse(apiKey) });
+      return res.json({ apiKey: serializeApiKey(apiKey) });
     })
   );
 
   router.post(
     '/:id/rotate',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
+    requireSameOriginForCookieAuth,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_ROTATE),
     asyncHandler(async (req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
-      const rotated = await rotateApiKey(req.params.id);
+      const apiKeyId = validateApiKeyIdentifierParam(req.params);
+      const rotated = await rotateApiKey(apiKeyId);
       if (!rotated) {
         throw new PublicError({
           statusCode: 404,
@@ -282,29 +217,20 @@ function buildApiKeysRouter({ asyncHandler }) {
         },
       });
 
-      return res.json({
-        previousApiKeyId: rotated.previousApiKeyId,
-        apiKey: toApiKeyResponse(rotated.apiKey),
-        secret: rotated.secret,
-      });
+      return res.json(serializeRotatedApiKey(rotated));
     })
   );
 
   router.patch(
     '/:id',
     requireConfiguredAuth,
+    requireConfiguredApiKeyService,
     requireAdminOperator,
+    requireSameOriginForCookieAuth,
     requirePermission(INTERNAL_PERMISSIONS.API_KEYS_UPDATE),
     asyncHandler(async (req, res) => {
-      if (!isApiKeyServiceConfigured()) {
-        throw new PublicError({
-          statusCode: 503,
-          code: 'API_KEY_SERVICE_NOT_CONFIGURED',
-          message: 'API key service requires DATABASE_URL.',
-        });
-      }
-
-      const existing = await findApiKeyByIdentifier(req.params.id);
+      const apiKeyId = validateApiKeyIdentifierParam(req.params);
+      const existing = await findApiKeyByIdentifier(apiKeyId);
       if (!existing) {
         throw new PublicError({
           statusCode: 404,
@@ -313,26 +239,8 @@ function buildApiKeysRouter({ asyncHandler }) {
         });
       }
 
-      let apiKey;
-      try {
-        apiKey = await updateApiKey(req.params.id, {
-          name: req.body?.name,
-          role: req.body?.role,
-          scopes: req.body?.scopes,
-          notes: req.body?.notes,
-          expiresAt: req.body?.expiresAt,
-          isActive: req.body?.isActive,
-        });
-      } catch (err) {
-        if (isApiKeyScopeValidationError(err)) {
-          throw new PublicError({
-            statusCode: 400,
-            code: 'INVALID_SCOPES',
-            message: 'Invalid API key scopes.',
-          });
-        }
-        throw err;
-      }
+      const validatedInput = validateUpdateApiKeyInput(req.body);
+      const apiKey = await updateApiKey(apiKeyId, validatedInput);
 
       await writeAuditLog({
         actorUserId: req.auth.sub,
@@ -347,7 +255,7 @@ function buildApiKeysRouter({ asyncHandler }) {
         },
       });
 
-      return res.json({ apiKey: toApiKeyResponse(apiKey) });
+      return res.json({ apiKey: serializeApiKey(apiKey) });
     })
   );
 

@@ -12,7 +12,8 @@ const {
   parseApiKey,
 } = require('../lib/api-key');
 const { API_KEY_SCOPES, SUPPORTED_API_KEY_SCOPES, isApiKeyScopeValidationError } = require('../lib/api-key-scopes');
-const { createApiKey, isApiKeyUsable, mapApiKeyRow, updateApiKey } = require('../lib/api-key-service');
+const { mapApiKeyRow } = require('../lib/mappers/api-key-mapper');
+const { createApiKey, isApiKeyUsable, updateApiKey } = require('../lib/api-key-service');
 
 test('generateApiKey creates parseable live key by default', () => {
   const generated = generateApiKey();

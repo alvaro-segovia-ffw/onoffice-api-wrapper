@@ -11,6 +11,8 @@ const {
   requireAdminPageSession,
   userHasAdminConsoleAccess,
 } = require('../middlewares/require-admin-operator');
+const { requireSameOrigin } = require('../middlewares/require-same-origin');
+const { validateLoginInput } = require('../validation/auth.validation');
 
 function buildAdminRouter({
   adminDir,
@@ -39,19 +41,11 @@ function buildAdminRouter({
 
   router.post(
     '/login',
+    requireSameOrigin,
     loginRateLimitMiddleware,
     requireConfiguredAuth,
     asyncHandler(async (req, res) => {
-      const email = String(req.body?.email || '').trim();
-      const password = String(req.body?.password || '');
-
-      if (!email || !password) {
-        throw new PublicError({
-          statusCode: 400,
-          code: 'BAD_REQUEST',
-          message: 'email and password are required.',
-        });
-      }
+      const { email, password } = validateLoginInput(req.body);
 
       const session = await loginWithPassword(email, password, { issueRefreshToken: false });
       if (!session) {
@@ -74,7 +68,7 @@ function buildAdminRouter({
     })
   );
 
-  router.post('/logout', (_req, res) => {
+  router.post('/logout', requireSameOrigin, (_req, res) => {
     clearAdminSessionCookie(res);
     return res.status(204).end();
   });

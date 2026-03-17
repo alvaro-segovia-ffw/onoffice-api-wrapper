@@ -6,7 +6,7 @@ const path = require('path');
 const { PublicError } = require('./errors/public-error');
 const { isAuthConfigured } = require('../../lib/auth-service');
 const { serializeCookie } = require('../../lib/cookies');
-const { loadDotEnv } = require('../../lib/load-dotenv');
+const { loadAppEnv } = require('../../lib/load-dotenv');
 const { errorHandler } = require('./middlewares/error-handler');
 const { adminCookieName } = require('./middlewares/require-admin-operator');
 const { createInMemoryRateLimit } = require('./middlewares/request-rate-limit');
@@ -18,7 +18,7 @@ const { buildAuthRouter } = require('./routes/auth.routes');
 const { buildDocsRouter } = require('./routes/docs.routes');
 const { buildHealthRouter } = require('./routes/health.routes');
 
-loadDotEnv(path.join(process.cwd(), '.env'));
+loadAppEnv(process.cwd());
 
 const PORT = Number(process.env.PORT || process.env.EXPORT_API_PORT || 3000);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -95,6 +95,7 @@ const loginRateLimitMiddleware = createInMemoryRateLimit({
 });
 
 const app = express();
+app.disable('x-powered-by');
 const adminDir = path.join(projectRoot, 'src', 'public', 'admin', 'web');
 const siteDir = path.join(projectRoot, 'src', 'public', 'site', 'web');
 const docsDir = path.join(projectRoot, 'docs');
@@ -115,18 +116,8 @@ function buildHealthPayload() {
   };
 }
 
-function requestOrigin(req) {
-  const forwardedProto = String(req.header('x-forwarded-proto') || '')
-    .split(',')[0]
-    .trim();
-  const proto = forwardedProto || req.protocol || (IS_PRODUCTION ? 'https' : 'http');
-  const host = String(req.header('x-forwarded-host') || req.header('host') || '').trim();
-  if (!host) return null;
-  return `${proto}://${host}`;
-}
-
 function buildOpenApiPayload(spec, req, explicitUrl) {
-  const serverUrl = String(explicitUrl || '').trim() || requestOrigin(req);
+  const serverUrl = String(explicitUrl || '').trim();
   if (!serverUrl) return spec;
 
   return {
@@ -167,7 +158,16 @@ function clearAdminSessionCookie(res) {
   );
 }
 
-app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  return next();
+});
+app.use(express.json({ limit: '100kb' }));
 app.use('/site', express.static(siteDir));
 
 app.get('/', (_req, res) => {

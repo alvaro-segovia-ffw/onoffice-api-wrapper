@@ -75,6 +75,18 @@ function renderSession(user) {
   els.sessionSummary.textContent = `${user.email} (${roles})`;
 }
 
+function clearChildren(node) {
+  node.replaceChildren();
+}
+
+function appendTextElement(parent, tagName, text, className) {
+  const element = document.createElement(tagName);
+  if (className) element.className = className;
+  element.textContent = text;
+  parent.appendChild(element);
+  return element;
+}
+
 function renderStats(stats) {
   const items = [
     ['Total', stats.totalKeys],
@@ -85,56 +97,110 @@ function renderStats(stats) {
     ['Auth Failed 24h', stats.apiKeyAuthFailed24h],
   ];
 
-  els.statsGrid.innerHTML = items
-    .map(([label, value]) => `<div class="stat"><span>${label}</span><strong>${value ?? '-'}</strong></div>`)
-    .join('');
+  clearChildren(els.statsGrid);
+  for (const [label, value] of items) {
+    const stat = document.createElement('div');
+    stat.className = 'stat';
+    appendTextElement(stat, 'span', label);
+    appendTextElement(stat, 'strong', String(value ?? '-'));
+    els.statsGrid.appendChild(stat);
+  }
 }
 
 function statusBadge(apiKey) {
-  if (!apiKey.isActive) return '<span class="badge badge-status text-bg-danger">revoked</span>';
-  if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= Date.now()) {
-    return '<span class="badge badge-status text-bg-warning">expired</span>';
+  const badge = document.createElement('span');
+  badge.className = 'badge badge-status';
+
+  if (!apiKey.isActive) {
+    badge.classList.add('text-bg-danger');
+    badge.textContent = 'revoked';
+    return badge;
   }
-  return '<span class="badge badge-status text-bg-success">active</span>';
+
+  if (apiKey.expiresAt && new Date(apiKey.expiresAt).getTime() <= Date.now()) {
+    badge.classList.add('text-bg-warning');
+    badge.textContent = 'expired';
+    return badge;
+  }
+
+  badge.classList.add('text-bg-success');
+  badge.textContent = 'active';
+  return badge;
+}
+
+function buildKeyActionButton(action, id, label, className) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.dataset.action = action;
+  button.dataset.id = id;
+  button.textContent = label;
+  return button;
 }
 
 function keyActionButtons(apiKey) {
-  const buttons = [];
-  buttons.push(
-    `<button data-action="rotate" data-id="${apiKey.publicId}" type="button" class="btn btn-sm btn-outline-secondary">Rotate</button>`
+  const actions = document.createDocumentFragment();
+  actions.appendChild(
+    buildKeyActionButton('rotate', apiKey.publicId, 'Rotate', 'btn btn-sm btn-outline-secondary')
   );
+
   if (apiKey.isActive) {
-    buttons.push(
-      `<button data-action="revoke" data-id="${apiKey.publicId}" type="button" class="btn btn-sm btn-outline-danger danger">Revoke</button>`
+    actions.appendChild(
+      buildKeyActionButton('revoke', apiKey.publicId, 'Revoke', 'btn btn-sm btn-outline-danger danger')
     );
   } else {
-    buttons.push(
-      `<button data-action="reactivate" data-id="${apiKey.publicId}" type="button" class="btn btn-sm btn-outline-success ghost">Reactivate</button>`
+    actions.appendChild(
+      buildKeyActionButton(
+        'reactivate',
+        apiKey.publicId,
+        'Reactivate',
+        'btn btn-sm btn-outline-success ghost'
+      )
     );
   }
-  return buttons.join('');
+
+  return actions;
 }
 
 function renderApiKeys(apiKeys) {
+  clearChildren(els.keysTable);
+
   if (!apiKeys.length) {
-    els.keysTable.innerHTML = '<tr><td colspan="6" class="empty">No API keys found.</td></tr>';
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.className = 'empty';
+    cell.textContent = 'No API keys found.';
+    row.appendChild(cell);
+    els.keysTable.appendChild(row);
     return;
   }
 
-  els.keysTable.innerHTML = apiKeys
-    .map(
-      (apiKey) => `
-        <tr>
-          <td>${apiKey.partnerId}</td>
-          <td>${apiKey.name}</td>
-          <td><code>${apiKey.keyPrefix}</code></td>
-          <td>${statusBadge(apiKey)}</td>
-          <td>${apiKey.lastUsedAt || '-'}</td>
-          <td><div class="row-actions">${keyActionButtons(apiKey)}</div></td>
-        </tr>
-      `
-    )
-    .join('');
+  for (const apiKey of apiKeys) {
+    const row = document.createElement('tr');
+
+    appendTextElement(row, 'td', apiKey.partnerId || '-');
+    appendTextElement(row, 'td', apiKey.name || '-');
+
+    const keyPrefixCell = document.createElement('td');
+    appendTextElement(keyPrefixCell, 'code', apiKey.keyPrefix || '-');
+    row.appendChild(keyPrefixCell);
+
+    const statusCell = document.createElement('td');
+    statusCell.appendChild(statusBadge(apiKey));
+    row.appendChild(statusCell);
+
+    appendTextElement(row, 'td', apiKey.lastUsedAt || '-');
+
+    const actionsCell = document.createElement('td');
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'row-actions';
+    actionsRow.appendChild(keyActionButtons(apiKey));
+    actionsCell.appendChild(actionsRow);
+    row.appendChild(actionsCell);
+
+    els.keysTable.appendChild(row);
+  }
 }
 
 async function loadStats() {
