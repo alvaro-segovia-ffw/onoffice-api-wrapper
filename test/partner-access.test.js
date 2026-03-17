@@ -20,6 +20,7 @@ test('buildPartnerApartmentAccessPolicy defaults to full projection for apartmen
   assert.equal(policy.canReadApartments, true);
   assert.equal(policy.projectionMode, 'full');
   assert.deepEqual(policy.apartmentFieldAllowlist, []);
+  assert.deepEqual(policy.accessPolicy, {});
 });
 
 test('buildPartnerApartmentAccessPolicy accepts explicit apartment field allowlist', () => {
@@ -35,6 +36,11 @@ test('buildPartnerApartmentAccessPolicy accepts explicit apartment field allowli
   });
 
   assert.equal(policy.projectionMode, 'allowlist');
+  assert.deepEqual(policy.accessPolicy, {
+    apartments: {
+      fields: ['id', 'address.city', 'rent.warmRent'],
+    },
+  });
   assert.deepEqual(policy.apartmentFieldAllowlist, ['id', 'address.city', 'rent.warmRent']);
 });
 
