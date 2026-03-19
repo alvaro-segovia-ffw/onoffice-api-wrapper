@@ -8,6 +8,7 @@ const { isAuthConfigured } = require('../../lib/auth-service');
 const { serializeCookie } = require('../../lib/cookies');
 const { loadAppEnv } = require('../../lib/load-dotenv');
 const { errorHandler } = require('./middlewares/error-handler');
+const { notFoundHandler } = require('./middlewares/not-found-handler');
 const { adminCookieName } = require('./middlewares/require-admin-operator');
 const { createInMemoryRateLimit } = require('./middlewares/request-rate-limit');
 const { buildAdminRouter } = require('./routes/admin.routes');
@@ -242,6 +243,7 @@ app.use(
 
 let isShuttingDown = false;
 
+app.use(notFoundHandler);
 app.use(errorHandler);
 
 const server = app.listen(PORT, '0.0.0.0', () => {

@@ -4,6 +4,7 @@ const { Router } = require('express');
 
 const {
   createApiKey,
+  deleteApiKey,
   findApiKeyByIdentifier,
   getApiKeyStats,
   listApiKeys,
@@ -15,6 +16,7 @@ const {
 const { INTERNAL_PERMISSIONS } = require('../authz/internal-permissions');
 const {
   recordApiKeyCreated,
+  recordApiKeyDeleted,
   recordApiKeyReactivated,
   recordApiKeyRevoked,
   recordApiKeyRotated,
@@ -205,6 +207,31 @@ function buildApiKeysRouter({ asyncHandler }) {
       await recordApiKeyUpdated(req, apiKey);
 
       return res.json({ apiKey: serializeApiKey(apiKey) });
+    })
+  );
+
+  router.delete(
+    '/:id',
+    requireConfiguredAuth,
+    requireConfiguredApiKeyService,
+    requireAdminOperator,
+    requireSameOriginForCookieAuth,
+    requirePermission(INTERNAL_PERMISSIONS.API_KEYS_DELETE),
+    asyncHandler(async (req, res) => {
+      const apiKeyId = validateApiKeyIdentifierParam(req.params);
+      const existing = await findApiKeyByIdentifier(apiKeyId);
+      if (!existing) {
+        throw new PublicError({
+          statusCode: 404,
+          code: 'NOT_FOUND',
+          message: 'API key not found.',
+        });
+      }
+
+      const deleted = await deleteApiKey(apiKeyId);
+      await recordApiKeyDeleted(req, deleted);
+
+      return res.json({ apiKey: serializeApiKey(deleted) });
     })
   );
 

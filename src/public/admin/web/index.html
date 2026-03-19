@@ -175,12 +175,20 @@
                 <p class="section-copy mt-3 mb-0">
                   Create a live partner key with the minimum data needed to start integrating.
                 </p>
-                <form id="createForm" class="row g-4 mt-1 create-key-form">
-                  <div class="col-12">
-                    <div class="create-form-block">
-                      <p class="card-kicker mb-3">Identity</p>
+                <div class="create-workspace mt-4">
+                  <form id="createForm" class="create-key-form">
+                    <div class="create-form-block create-form-primary">
+                      <div class="create-form-head">
+                        <div>
+                          <p class="card-kicker mb-2">Identity</p>
+                          <p class="helper-copy mb-0">Set the partner label, stable ID and delivery defaults in one compact flow.</p>
+                        </div>
+                        <div class="create-default-pill">
+                          <span>Live client key</span>
+                        </div>
+                      </div>
                       <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-lg-7">
                           <label class="form-label">
                             Key Name
                             <input
@@ -193,7 +201,7 @@
                             />
                           </label>
                         </div>
-                        <div class="col-12">
+                        <div class="col-lg-5">
                           <label class="form-label">
                             Partner ID
                             <input
@@ -206,22 +214,20 @@
                             />
                           </label>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="create-form-block">
-                      <p class="card-kicker mb-3">Access</p>
-                      <div class="row g-3">
-                        <div class="col-12 create-scope-row">
+                        <div class="col-12">
                           <div class="scope-select-card">
-                            <label class="form-label mb-2">
-                              Scope
-                              <select id="createScope" name="scopes" class="form-select scope-select">
-                                <option value="apartments:read">apartments:read</option>
-                              </select>
-                            </label>
-                            <p class="helper-copy mb-0">Current partner access starts with apartment read access.</p>
+                            <div class="create-inline-head">
+                              <div>
+                                <p class="card-kicker mb-2">Access</p>
+                                <p class="helper-copy mb-0">Current partner access starts with apartment read access.</p>
+                              </div>
+                              <label class="form-label mb-0">
+                                Scope
+                                <select id="createScope" name="scopes" class="form-select scope-select">
+                                  <option value="apartments:read">apartments:read</option>
+                                </select>
+                              </label>
+                            </div>
                           </div>
                         </div>
                         <div class="col-12">
@@ -236,25 +242,41 @@
                           </label>
                         </div>
                       </div>
+                      <div class="create-form-footer">
+                        <div class="create-form-note">
+                          <span class="card-kicker">Defaults</span>
+                          <p class="helper-copy mb-0">The secret will be shown once right after creation.</p>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                          <button id="btnCreateSubmit" type="submit" class="btn btn-admin">Create Key</button>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                  <div class="create-result-column">
+                    <div class="create-form-block create-form-secondary">
+                      <div class="create-result-head">
+                        <div>
+                          <p class="card-kicker mb-2">Delivery</p>
+                          <p class="helper-copy mb-0">New secrets appear here immediately after creation, with copy access before they disappear.</p>
+                        </div>
+                        <span class="create-result-state">One-time secret</span>
+                      </div>
+                      <div id="createOutput" class="result-panel create-result-panel mt-4">
+                        <div class="create-empty-state">
+                          <p class="mb-2"><strong>No key created yet.</strong></p>
+                          <p class="helper-copy mb-0">Fill the form and generate the partner credential. The delivery panel will replace this placeholder with the secret.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <div class="create-form-note">
-                      <span class="card-kicker">Defaults</span>
-                      <p class="helper-copy mb-0">New partner keys are created as live client keys.</p>
-                    </div>
-                    <div class="d-flex flex-wrap gap-2">
-                      <button id="btnCreateSubmit" type="submit" class="btn btn-admin">Create Key</button>
-                    </div>
-                  </div>
-                </form>
-                <pre id="createOutput" class="console-output mt-4">No key created yet.</pre>
+                </div>
               </article>
             </section>
 
             <section class="console-view" data-view="keys" hidden>
               <div class="row g-4">
-                <div class="col-xl-7">
+                <div class="col-12">
                   <article class="surface-card h-100">
                     <div class="panel-head">
                       <div>
@@ -267,27 +289,47 @@
                       </div>
                     </div>
                     <p class="section-copy mt-3 mb-0">
-                      Select one key to inspect metadata and run actions from the detail panel.
+                      Filter fast by partner, key name or prefix and work from the selected detail panel.
                     </p>
-                    <div class="table-responsive mt-4">
+                    <div class="keys-toolbar mt-4">
+                      <label class="form-label mb-0">
+                        Search
+                        <input
+                          id="keySearchInput"
+                          type="search"
+                          class="form-control"
+                          placeholder="idealista, main feed, live_pk..."
+                        />
+                      </label>
+                      <label class="form-label mb-0">
+                        Status
+                        <select id="keyStatusFilter" class="form-select">
+                          <option value="all">All keys</option>
+                          <option value="active">Active</option>
+                          <option value="revoked">Revoked</option>
+                          <option value="expired">Expired</option>
+                        </select>
+                      </label>
+                    </div>
+                    <p id="keysListMeta" class="helper-copy mt-3 mb-0">No data loaded.</p>
+                    <div class="table-responsive mt-3">
                       <table class="table table-hover align-middle admin-table mb-0">
                         <thead>
                           <tr>
-                            <th>Partner</th>
-                            <th>Name</th>
-                            <th>Prefix</th>
+                            <th>Key</th>
                             <th>Status</th>
                             <th>Last Used</th>
+                            <th>Expires</th>
                           </tr>
                         </thead>
                         <tbody id="keysTable">
-                          <tr><td colspan="5" class="empty">No data loaded.</td></tr>
+                          <tr><td colspan="4" class="empty">No data loaded.</td></tr>
                         </tbody>
                       </table>
                     </div>
                   </article>
                 </div>
-                <div class="col-xl-5">
+                <div class="col-12">
                   <article class="surface-card h-100">
                     <div class="panel-head">
                       <div>
@@ -298,18 +340,26 @@
                     <div id="keyDetailCard" class="key-detail-card mt-4">
                       <p class="empty mb-0">Select an API key from the directory.</p>
                     </div>
+                    <div id="keyDetailActions" class="row-actions row-actions-detail mt-4" hidden></div>
                     <form id="keyDetailForm" class="row g-3 mt-4" hidden>
                       <div class="col-12">
-                        <label class="form-label">
+                        <p class="card-kicker mb-2">Editable Settings</p>
+                        <p class="helper-copy mb-0">Adjust the fields operators actually change. Everything else stays in the summary above.</p>
+                      </div>
+                      <div class="col-lg-7">
+                        <label class="form-label mb-0">
                           Key Name
                           <input id="keyDetailName" name="name" type="text" class="form-control" />
                         </label>
                       </div>
-                      <div class="col-12">
-                        <label class="form-label">
+                      <div class="col-lg-5">
+                        <label class="form-label mb-0">
                           Scopes
-                          <input id="keyDetailScopes" name="scopes" type="text" class="form-control" />
+                          <select id="keyDetailScopes" name="scopes" class="form-select">
+                            <option value="apartments:read">apartments:read</option>
+                          </select>
                         </label>
+                        <p class="helper-copy mt-2 mb-0">Available scopes are limited to the supported partner permissions.</p>
                       </div>
                       <div class="col-12">
                         <label class="form-label">
@@ -324,25 +374,97 @@
                         </label>
                       </div>
                       <div class="col-12">
-                        <label class="form-label">
-                          Apartment Access Fields
-                          <input
-                            id="keyDetailAccessFields"
-                            name="accessFields"
-                            type="text"
-                            class="form-control"
-                            placeholder="id, address.city, rent.warmRent"
-                          />
-                        </label>
-                        <p class="helper-copy mt-2 mb-0">Comma-separated allowlist for apartment projection. Leave empty for full payload.</p>
+                        <div class="access-field-editor">
+                          <div class="access-field-header">
+                            <div>
+                              <p class="card-kicker mb-2">Apartment Projection</p>
+                              <p class="helper-copy mb-0">Choose exactly which apartment fields this partner key can read. Start with presets, then refine the selection.</p>
+                            </div>
+                            <div id="keyDetailAccessSummary" class="access-field-summary">Full payload</div>
+                          </div>
+                          <div class="access-field-assist mt-3">
+                            <div class="access-field-library">
+                              <div class="access-field-section">
+                                <div class="access-field-section-head">
+                                  <p class="card-kicker mb-1">Presets</p>
+                                  <p class="helper-copy mb-0">Apply a sensible starter set before fine-tuning individual fields.</p>
+                                </div>
+                                <div id="keyDetailAccessPresets" class="row-actions row-actions-detail">
+                                  <button type="button" class="btn btn-outline-admin btn-sm" data-access-preset="essentials">Listing essentials</button>
+                                  <button type="button" class="btn btn-outline-admin btn-sm" data-access-preset="address">Address only</button>
+                                  <button type="button" class="btn btn-outline-admin btn-sm" data-access-preset="pricing">Pricing only</button>
+                                </div>
+                              </div>
+                              <div class="access-field-grid">
+                                <section class="access-field-section">
+                                  <div class="access-field-section-head">
+                                    <p class="card-kicker mb-1">Identity</p>
+                                    <p class="helper-copy mb-0">Stable record identifiers.</p>
+                                  </div>
+                                  <div id="keyDetailAccessSuggestions" class="row-actions row-actions-detail access-field-options">
+                                    <button type="button" class="btn btn-outline-admin btn-sm" data-access-field="id">id</button>
+                                    <button type="button" class="btn btn-outline-admin btn-sm" data-access-field="currency">currency</button>
+                                  </div>
+                                </section>
+                                <section class="access-field-section">
+                                  <div class="access-field-section-head">
+                                    <p class="card-kicker mb-1">Address</p>
+                                    <p class="helper-copy mb-0">Useful when the partner needs location context.</p>
+                                  </div>
+                                  <div class="row-actions row-actions-detail access-field-options">
+                                    <button type="button" class="btn btn-outline-admin btn-sm" data-access-field="address.street">address.street</button>
+                                    <button type="button" class="btn btn-outline-admin btn-sm" data-access-field="address.city">address.city</button>
+                                  </div>
+                                </section>
+                                <section class="access-field-section">
+                                  <div class="access-field-section-head">
+                                    <p class="card-kicker mb-1">Pricing</p>
+                                    <p class="helper-copy mb-0">Expose only the rent values a feed actually needs.</p>
+                                  </div>
+                                  <div class="row-actions row-actions-detail access-field-options">
+                                    <button type="button" class="btn btn-outline-admin btn-sm" data-access-field="rent.coldRent">rent.coldRent</button>
+                                    <button type="button" class="btn btn-outline-admin btn-sm" data-access-field="rent.warmRent">rent.warmRent</button>
+                                  </div>
+                                </section>
+                              </div>
+                            </div>
+                            <div class="access-field-preview-shell">
+                              <div class="access-field-preview-head">
+                                <div>
+                                  <p class="card-kicker mb-1">Selected Fields</p>
+                                  <p class="helper-copy mb-0">Remove fields directly from the chip list or switch back to the full apartment payload.</p>
+                                </div>
+                                <button id="btnKeyDetailAccessClear" type="button" class="btn btn-outline-admin btn-sm">Full Payload</button>
+                              </div>
+                              <div id="keyDetailAccessPreview" class="access-field-preview">
+                                <span class="helper-copy">Full apartment payload.</span>
+                              </div>
+                              <label class="form-label access-field-advanced mb-0">
+                                Advanced Editor
+                                <textarea
+                                  id="keyDetailAccessFields"
+                                  name="accessFields"
+                                  class="form-control"
+                                  rows="5"
+                                  placeholder="id&#10;address.city&#10;rent.warmRent"
+                                ></textarea>
+                              </label>
+                              <p class="helper-copy mt-2 mb-0">Use one field per line or separate them with commas. Keep this for custom paths that are not in the library.</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
                         <span id="keyDetailStatus" class="status badge rounded-pill">idle</span>
-                        <button type="submit" class="btn btn-admin">Save Changes</button>
+                        <div class="d-flex flex-wrap gap-2">
+                          <button id="btnKeyDetailReset" type="button" class="btn btn-outline-admin">Reset Edits</button>
+                          <button type="submit" class="btn btn-admin">Save Changes</button>
+                        </div>
                       </div>
                     </form>
-                    <div id="keyDetailActions" class="row-actions row-actions-detail mt-4" hidden></div>
-                    <pre id="keyActionOutput" class="console-output mt-4">No actions run yet.</pre>
+                    <div id="keyActionOutput" class="result-panel mt-4">
+                      <p class="helper-copy mb-0">No actions run yet.</p>
+                    </div>
                   </article>
                 </div>
               </div>
@@ -350,49 +472,116 @@
 
             <section class="console-view" data-view="audit" hidden>
               <div class="row g-4">
-                <div class="col-xl-4">
-                  <article class="surface-card h-100">
+                <div class="col-12">
+                  <article class="surface-card">
                     <div class="panel-head">
                       <div>
                         <p class="card-kicker">Traceability</p>
-                        <h3 class="mb-0">Audit Filters</h3>
+                        <h3 class="mb-0">Audit Controls</h3>
                       </div>
                       <span id="auditStatus" class="status badge rounded-pill">idle</span>
                     </div>
-                    <form id="auditForm" class="row g-3 mt-1">
-                      <div class="col-12">
-                        <label class="form-label">
-                          Partner ID
-                          <input name="partnerId" type="text" class="form-control" placeholder="roombae" />
-                        </label>
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label">
-                          Action
-                          <input name="action" type="text" class="form-control" placeholder="api_key_used" />
-                        </label>
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label">
-                          Limit
-                          <input name="limit" type="number" class="form-control" min="1" max="200" value="20" />
-                        </label>
-                      </div>
-                      <div class="col-12 d-flex flex-wrap gap-3">
-                        <button type="submit" class="btn btn-admin">Load Logs</button>
-                      </div>
-                    </form>
-                  </article>
-                </div>
-                <div class="col-xl-8">
-                  <article class="surface-card h-100">
-                    <div class="panel-head">
-                      <div>
-                        <p class="card-kicker">Event stream</p>
-                        <h3 class="mb-0">Audit Output</h3>
+                    <div class="audit-control-shell mt-4">
+                      <form id="auditForm" class="row g-3 audit-control-form">
+                        <div class="col-lg-4">
+                          <label class="form-label">
+                            Partner ID
+                            <select id="auditPartnerFilter" name="partnerId" class="form-select">
+                              <option value="">All partners</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div class="col-lg-4">
+                          <label class="form-label">
+                            Action
+                            <select name="action" class="form-select">
+                              <option value="">All actions</option>
+                              <option value="api_key_used">api_key_used</option>
+                              <option value="api_key_auth_failed">api_key_auth_failed</option>
+                              <option value="api_key_scope_denied">api_key_scope_denied</option>
+                              <option value="api_key_created">api_key_created</option>
+                              <option value="api_key_updated">api_key_updated</option>
+                              <option value="api_key_rotated">api_key_rotated</option>
+                              <option value="api_key_revoked">api_key_revoked</option>
+                              <option value="api_key_reactivated">api_key_reactivated</option>
+                              <option value="api_key_deleted">api_key_deleted</option>
+                            </select>
+                          </label>
+                        </div>
+                        <div class="col-lg-2">
+                          <label class="form-label">
+                            Limit
+                            <input name="limit" type="number" class="form-control" min="1" max="200" value="20" />
+                          </label>
+                        </div>
+                        <div class="col-lg-2 d-flex align-items-end">
+                          <button type="submit" class="btn btn-admin w-100">Load Logs</button>
+                        </div>
+                      </form>
+                      <div class="audit-tip">
+                        <p class="card-kicker mb-2">Operator focus</p>
+                        <p class="helper-copy mb-0">Watch for auth failures, repeated scope denials and unexpected activity spikes from the same partner or IP.</p>
                       </div>
                     </div>
-                    <pre id="auditOutput" class="console-output console-output-tall mt-4">No logs loaded yet.</pre>
+                  </article>
+                </div>
+                <div class="col-12">
+                  <article class="surface-card">
+                    <div class="panel-head">
+                      <div>
+                        <p class="card-kicker">Security Overview</p>
+                        <h3 class="mb-0">Audit Monitor</h3>
+                      </div>
+                    </div>
+                    <div id="auditSummary" class="audit-summary-grid mt-4">
+                      <div class="stat"><span>Total events</span><strong>-</strong></div>
+                      <div class="stat"><span>Auth failed</span><strong>-</strong></div>
+                      <div class="stat"><span>Scope denied</span><strong>-</strong></div>
+                      <div class="stat"><span>Unique partners</span><strong>-</strong></div>
+                    </div>
+                    <div class="audit-signal-shell mt-4">
+                      <div>
+                        <p class="card-kicker mb-2">Security Signal</p>
+                        <p id="auditSignalText" class="helper-copy mb-0">Load logs to inspect partner activity and control health.</p>
+                      </div>
+                      <span id="auditSignalBadge" class="status badge rounded-pill">idle</span>
+                    </div>
+                    <div class="audit-monitor-grid mt-4">
+                      <div class="audit-stream-panel">
+                        <div class="audit-section-head">
+                          <div>
+                            <p class="card-kicker mb-1">Event stream</p>
+                            <p class="helper-copy mb-0">Scan the current slice quickly before drilling into one event.</p>
+                          </div>
+                        </div>
+                        <div class="table-responsive mt-3">
+                          <table class="table table-hover align-middle admin-table mb-0">
+                            <thead>
+                              <tr>
+                                <th>Event</th>
+                                <th>Partner / Actor</th>
+                                <th>Source</th>
+                                <th>When</th>
+                              </tr>
+                            </thead>
+                            <tbody id="auditTable">
+                              <tr><td colspan="4" class="empty">No logs loaded yet.</td></tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      <div class="audit-detail-panel">
+                        <div class="audit-section-head">
+                          <div>
+                            <p class="card-kicker mb-1">Selected event</p>
+                            <p class="helper-copy mb-0">Inspect actor identity, resource context and raw metadata without leaving the monitor.</p>
+                          </div>
+                        </div>
+                        <div id="auditDetailCard" class="audit-detail-card mt-3">
+                          <p class="empty mb-0">Select an audit event to inspect its details.</p>
+                        </div>
+                      </div>
+                    </div>
                   </article>
                 </div>
               </div>
