@@ -1,6 +1,8 @@
 const state = {
   apiKeys: [],
   selectedApiKeyId: null,
+  auditLogs: [],
+  selectedAuditLogId: null,
 };
 
 export function getApiKeys() {
@@ -26,5 +28,31 @@ export function findSelectedApiKey() {
 export function ensureSelectedApiKey() {
   if (!findSelectedApiKey()) {
     state.selectedApiKeyId = state.apiKeys[0]?.publicId || null;
+  }
+}
+
+export function getAuditLogs() {
+  return state.auditLogs;
+}
+
+export function setAuditLogs(auditLogs) {
+  state.auditLogs = Array.isArray(auditLogs) ? auditLogs : [];
+}
+
+export function getSelectedAuditLogId() {
+  return state.selectedAuditLogId;
+}
+
+export function setSelectedAuditLogId(auditLogId) {
+  state.selectedAuditLogId = auditLogId || null;
+}
+
+export function findSelectedAuditLog() {
+  return state.auditLogs.find((log) => log.id === state.selectedAuditLogId) || null;
+}
+
+export function ensureSelectedAuditLog() {
+  if (!findSelectedAuditLog()) {
+    state.selectedAuditLogId = state.auditLogs[0]?.id || null;
   }
 }

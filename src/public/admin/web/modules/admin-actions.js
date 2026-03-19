@@ -1,11 +1,39 @@
 import { apiFetch, redirectToLogin } from './admin-api.js';
 import { els } from './admin-elements.js';
-import { renderApiKeys, renderSession, renderStats } from './admin-renderers.js';
-import { getApiKeys, setSelectedApiKeyId } from './admin-state.js';
+import {
+  renderAccessFieldPreview,
+  renderApiKeys,
+  renderAuditLogs,
+  renderCreateResult,
+  renderKeyActionResult,
+  renderSession,
+  renderStats,
+} from './admin-renderers.js';
+import {
+  findSelectedApiKey,
+  getAuditLogs,
+  getApiKeys,
+  setSelectedApiKeyId,
+  setSelectedAuditLogId,
+} from './admin-state.js';
 import { setActiveView } from './admin-view.js';
 import { setStatus, writeJson } from './dom-utils.js';
 
 let lastGeneratedCreatePartnerId = '';
+const ACCESS_FIELD_PRESETS = Object.freeze({
+  essentials: ['id', 'address.city', 'rent.warmRent', 'currency'],
+  address: ['address.street', 'address.city'],
+  pricing: ['rent.coldRent', 'rent.warmRent', 'currency'],
+});
+
+function localDateTimeValueToIso(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return null;
+
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return normalized;
+  return date.toISOString();
+}
 
 function handleAuthError(err) {
   if (/session|authorized|role/i.test(err.message)) {
@@ -25,7 +53,7 @@ function normalizePartnerId(value) {
 
 function parseCommaSeparatedList(value) {
   return String(value || '')
-    .split(',')
+    .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -111,11 +139,11 @@ export async function loadAuditLogs(filters = {}) {
     });
     const suffix = query.toString() ? `?${query.toString()}` : '';
     const payload = await apiFetch(`/audit-logs${suffix}`);
-    writeJson(els.auditOutput, payload.logs || []);
+    renderAuditLogs(payload.logs || []);
     setStatus(els.auditStatus, 'loaded', true);
   } catch (err) {
     setStatus(els.auditStatus, 'error', false);
-    writeJson(els.auditOutput, { error: err.message });
+    renderAuditLogs([]);
     handleAuthError(err);
   }
 }
@@ -146,18 +174,17 @@ export async function createApiKey(event) {
       method: 'POST',
       body: JSON.stringify(payload),
     });
-    writeJson(els.createOutput, created);
+    renderCreateResult(created);
     setStatus(els.createStatus, 'created', true);
     setSelectedApiKeyId(created.apiKey?.publicId || null);
     els.createForm.reset();
     els.createPartnerId.value = '';
     els.createName.value = '';
     resetCreatePartnerIdAutofill();
-    setActiveView('keys');
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
     setStatus(els.createStatus, 'error', false);
-    writeJson(els.createOutput, { error: err.message });
+    renderCreateResult({ error: err.message });
     handleAuthError(err);
   }
 }
@@ -169,22 +196,34 @@ export async function handleKeyAction(event) {
   const { action, id } = button.dataset;
   if (!action || !id) return;
 
+  if (
+    action === 'delete' &&
+    !window.confirm('Delete this API key permanently? This cannot be undone and the secret cannot be recovered.')
+  ) {
+    return;
+  }
+
   const path =
     action === 'rotate'
       ? `/api-keys/${id}/rotate`
       : action === 'revoke'
         ? `/api-keys/${id}/revoke`
-        : `/api-keys/${id}/reactivate`;
+        : action === 'delete'
+          ? `/api-keys/${id}`
+          : `/api-keys/${id}/reactivate`;
+  const method = action === 'delete' ? 'DELETE' : 'POST';
 
   try {
-    const payload = await apiFetch(path, { method: 'POST' });
-    writeJson(els.keyActionOutput, payload);
-    if (payload?.apiKey?.publicId) {
+    const payload = await apiFetch(path, { method });
+    renderKeyActionResult({ action, payload });
+    if (action === 'delete') {
+      setSelectedApiKeyId(null);
+    } else if (payload?.apiKey?.publicId) {
       setSelectedApiKeyId(payload.apiKey.publicId);
     }
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
-    writeJson(els.keyActionOutput, { error: err.message, action, id });
+    renderKeyActionResult({ action, error: err.message });
     handleAuthError(err);
   }
 }
@@ -198,9 +237,9 @@ export async function handleKeyDetailSubmit(event) {
 
   const payload = {
     name: String(els.keyDetailName.value || '').trim(),
-    scopes: parseCommaSeparatedList(els.keyDetailScopes.value),
+    scopes: [String(els.keyDetailScopes.value || '').trim()].filter(Boolean),
     notes: String(els.keyDetailNotes.value || '').trim() || null,
-    expiresAt: String(els.keyDetailExpiresAt.value || '').trim() || null,
+    expiresAt: localDateTimeValueToIso(els.keyDetailExpiresAt.value),
     accessPolicy: buildAccessPolicyFromFields(els.keyDetailAccessFields.value),
   };
 
@@ -210,12 +249,12 @@ export async function handleKeyDetailSubmit(event) {
       body: JSON.stringify(payload),
     });
     setStatus(els.keyDetailStatus, 'saved', true);
-    writeJson(els.keyActionOutput, result);
+    renderKeyActionResult({ action: 'update', payload: result });
     setSelectedApiKeyId(result.apiKey?.publicId || selectedApiKey.publicId);
     await Promise.all([loadApiKeys(), loadStats(), loadAuditLogs({ limit: 20 })]);
   } catch (err) {
     setStatus(els.keyDetailStatus, 'error', false);
-    writeJson(els.keyActionOutput, { error: err.message });
+    renderKeyActionResult({ action: 'update', error: err.message });
     handleAuthError(err);
   }
 }
@@ -226,6 +265,52 @@ export function handleKeySelection(event) {
 
   setSelectedApiKeyId(row.dataset.keyId);
   renderApiKeys(getApiKeys());
+}
+
+export function handleKeyFiltersChange() {
+  renderApiKeys(getApiKeys());
+}
+
+export function handleKeyDetailReset() {
+  renderApiKeys(getApiKeys());
+}
+
+export function handleKeyDetailAccessSuggestion(event) {
+  const button = event.target.closest('button[data-access-field], button[data-remove-access-field]');
+  if (!button) return;
+
+  const nextField = String(button.dataset.accessField || button.dataset.removeAccessField || '').trim();
+  if (!nextField) return;
+
+  const fields = parseCommaSeparatedList(els.keyDetailAccessFields.value);
+  if (fields.includes(nextField)) {
+    els.keyDetailAccessFields.value = fields.filter((field) => field !== nextField).join('\n');
+  } else {
+    els.keyDetailAccessFields.value = [...fields, nextField].join('\n');
+  }
+
+  renderAccessFieldPreview(findSelectedApiKey());
+}
+
+export function handleKeyDetailAccessPreset(event) {
+  const button = event.target.closest('button[data-access-preset]');
+  if (!button) return;
+
+  const presetName = String(button.dataset.accessPreset || '').trim();
+  const presetFields = ACCESS_FIELD_PRESETS[presetName] || [];
+  if (!presetFields.length) return;
+
+  els.keyDetailAccessFields.value = presetFields.join('\n');
+  renderAccessFieldPreview(findSelectedApiKey());
+}
+
+export function handleKeyDetailAccessClear() {
+  els.keyDetailAccessFields.value = '';
+  renderAccessFieldPreview(findSelectedApiKey());
+}
+
+export function handleKeyDetailAccessInput() {
+  renderAccessFieldPreview(findSelectedApiKey());
 }
 
 export function handleAuditSubmit(event) {
@@ -240,7 +325,14 @@ export function handleAuditSubmit(event) {
   });
 }
 
+export function handleAuditSelection(event) {
+  const row = event.target.closest('tr[data-audit-id]');
+  if (!row) return;
+
+  setSelectedAuditLogId(row.dataset.auditId);
+  renderAuditLogs(getAuditLogs());
+}
+
 export function bindCreateFormBehavior() {
   els.createName.addEventListener('input', updateCreatePartnerIdFromName);
-  renderCreateSteps();
 }

@@ -39,6 +39,7 @@ function createResponseDouble() {
   return {
     statusCode: 200,
     payload: null,
+    contentType: null,
     headers: {},
     status(code) {
       this.statusCode = code;
@@ -49,6 +50,14 @@ function createResponseDouble() {
       return this;
     },
     json(body) {
+      this.payload = body;
+      return this;
+    },
+    type(value) {
+      this.contentType = value;
+      return this;
+    },
+    send(body) {
       this.payload = body;
       return this;
     },
@@ -317,6 +326,10 @@ test('developer role is restricted to read-oriented internal permissions', () =>
   );
   assert.equal(
     getPermissionsForRoles(['developer']).includes(INTERNAL_PERMISSIONS.API_KEYS_REVOKE),
+    false
+  );
+  assert.equal(
+    getPermissionsForRoles(['developer']).includes(INTERNAL_PERMISSIONS.API_KEYS_DELETE),
     false
   );
 });
@@ -633,4 +646,52 @@ test('errorHandler hides internal details for generic errors', () => {
   });
   assert.equal(JSON.stringify(res.payload).includes('database connection exploded'), false);
   assert.equal(JSON.stringify(res.payload).includes('very sensitive stack trace'), false);
+});
+
+test('errorHandler serves an html error page for browser 404 requests', () => {
+  const req = createRequestDouble({
+    method: 'GET',
+    originalUrl: '/missing-page',
+    headers: {
+      accept: 'text/html,application/xhtml+xml',
+    },
+  });
+  const res = createResponseDouble();
+  const err = new PublicError({
+    statusCode: 404,
+    code: 'NOT_FOUND',
+    message: 'Not found.',
+  });
+
+  runErrorHandler(err, req, res);
+
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.contentType, 'html');
+  assert.match(String(res.payload), /Page Not Found/);
+  assert.match(String(res.payload), /\/missing-page/);
+});
+
+test('errorHandler keeps json responses for api requests with generic accept headers', () => {
+  const req = createRequestDouble({
+    method: 'GET',
+    originalUrl: '/api-keys',
+    headers: {
+      accept: '*/*',
+    },
+  });
+  const res = createResponseDouble();
+  const err = new PublicError({
+    statusCode: 403,
+    code: 'FORBIDDEN',
+    message: 'Forbidden.',
+  });
+
+  runErrorHandler(err, req, res);
+
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(res.payload, {
+    status: 'error',
+    code: 'FORBIDDEN',
+    message: 'Forbidden.',
+  });
 });

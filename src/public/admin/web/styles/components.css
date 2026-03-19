@@ -114,6 +114,46 @@
   align-items: stretch;
 }
 
+.create-workspace,
+.create-form-head,
+.create-inline-head,
+.create-form-footer,
+.create-empty-state {
+  display: grid;
+}
+
+.create-workspace {
+  grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.9fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.create-form-primary,
+.create-form-secondary {
+  gap: 1rem;
+}
+
+.create-form-head,
+.create-form-footer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.create-default-pill,
+.create-result-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(183, 86, 43, 0.1);
+  color: var(--admin-brand-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .create-step-shell {
   display: flex;
   gap: 1rem;
@@ -163,6 +203,12 @@
   background: rgba(255, 255, 255, 0.68);
 }
 
+.create-inline-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: end;
+}
+
 .create-scope-row .form-select {
   min-height: 3.35rem;
   font-size: 1rem;
@@ -178,13 +224,38 @@
 }
 
 .scope-select {
+  display: inline-block;
+  width: auto;
+  min-width: 0;
   min-height: 3.45rem;
   font-weight: 600;
+  field-sizing: content;
+  padding-right: 2.8rem;
   background-color: rgba(255, 252, 248, 0.95);
+}
+
+#auditPartnerFilter {
+  display: inline-block;
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  field-sizing: content;
+  padding-right: 3rem;
 }
 
 .create-form-note {
   max-width: 24rem;
+}
+
+.create-result-column {
+  min-width: 0;
+}
+
+.create-result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
 }
 
 .console-output {
@@ -203,6 +274,92 @@
 
 .console-output-tall {
   min-height: 30rem;
+}
+
+.result-panel {
+  min-height: 8rem;
+}
+
+.create-result-panel {
+  min-height: 100%;
+}
+
+.result-card,
+.secret-shell,
+.secret-warning,
+.secret-row,
+.result-meta-grid {
+  display: grid;
+}
+
+.result-card {
+  gap: 1rem;
+  padding: 1.1rem;
+  border-radius: 1.2rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.result-card.success {
+  border-color: rgba(34, 120, 93, 0.2);
+  background: linear-gradient(180deg, rgba(34, 120, 93, 0.08), rgba(255, 255, 255, 0.8));
+}
+
+.result-card.danger {
+  border-color: rgba(182, 63, 56, 0.22);
+  background: linear-gradient(180deg, rgba(182, 63, 56, 0.08), rgba(255, 255, 255, 0.8));
+}
+
+.result-title {
+  margin: 0;
+  color: var(--admin-ink);
+  font-weight: 700;
+}
+
+.create-empty-state {
+  place-items: center start;
+  align-content: center;
+  min-height: 17rem;
+  padding: 1.1rem;
+  border-radius: 1.2rem;
+  border: 1px dashed rgba(135, 57, 23, 0.2);
+  background:
+    linear-gradient(180deg, rgba(183, 86, 43, 0.04), rgba(255, 255, 255, 0.76)),
+    rgba(255, 252, 248, 0.82);
+}
+
+.secret-shell {
+  gap: 0.8rem;
+}
+
+.secret-warning {
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(183, 86, 43, 0.18);
+  background: rgba(255, 248, 241, 0.85);
+}
+
+.secret-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.secret-field {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-weight: 600;
+}
+
+.result-meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.keys-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13rem;
+  gap: 1rem;
 }
 
 .admin-table {
@@ -228,6 +385,30 @@
 .admin-table tbody tr.selected {
   --bs-table-accent-bg: rgba(183, 86, 43, 0.12);
   box-shadow: inset 3px 0 0 var(--admin-brand);
+}
+
+.key-listing {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.key-listing-title {
+  color: var(--admin-ink);
+  font-weight: 700;
+}
+
+.key-listing-meta {
+  color: var(--admin-muted);
+  font-size: 0.88rem;
+}
+
+.key-listing code,
+.key-hero-meta code {
+  width: fit-content;
+  padding: 0.2rem 0.48rem;
+  border-radius: 999px;
+  background: rgba(183, 86, 43, 0.08);
+  color: var(--admin-brand-dark);
 }
 
 .empty {
@@ -269,6 +450,44 @@
   color: var(--admin-ok);
 }
 
+.row-actions button.active {
+  border-color: rgba(183, 86, 43, 0.32);
+  background: rgba(183, 86, 43, 0.12);
+  color: var(--admin-brand-dark);
+}
+
+.access-field-editor,
+.access-field-header,
+.access-field-library,
+.access-field-grid,
+.access-field-section,
+.access-field-section-head {
+  display: grid;
+}
+
+.access-field-editor {
+  gap: 1rem;
+}
+
+.access-field-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+
+.access-field-summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(183, 86, 43, 0.1);
+  color: var(--admin-brand-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .badge-status.badge,
 .badge {
   font-size: 0.78rem;
@@ -290,6 +509,194 @@
   color: var(--admin-ink);
   font-size: 1rem;
   line-height: 1.55;
+}
+
+.key-hero,
+.audit-hero,
+.key-hero-meta,
+.key-detail-grid,
+.access-field-assist,
+.access-field-preview-head,
+.access-field-preview {
+  display: grid;
+}
+
+.key-hero {
+  gap: 0.9rem;
+  padding: 1rem 1.05rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(183, 86, 43, 0.16);
+  background:
+    linear-gradient(180deg, rgba(183, 86, 43, 0.08), rgba(255, 255, 255, 0.76)),
+    rgba(255, 255, 255, 0.78);
+}
+
+.audit-hero {
+  gap: 0.35rem;
+  padding: 1rem 1.05rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(183, 86, 43, 0.16);
+  background:
+    linear-gradient(180deg, rgba(183, 86, 43, 0.08), rgba(255, 255, 255, 0.76)),
+    rgba(255, 255, 255, 0.78);
+}
+
+.key-hero-title {
+  margin: 0.2rem 0 0;
+  color: var(--admin-ink);
+}
+
+.key-hero-meta {
+  gap: 0.65rem;
+  justify-items: start;
+}
+
+.key-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.access-field-assist {
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.62);
+  grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.95fr);
+}
+
+.access-field-library {
+  gap: 1rem;
+}
+
+.access-field-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.access-field-section {
+  gap: 0.75rem;
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(111, 82, 53, 0.12);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.access-field-preview-shell {
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(183, 86, 43, 0.16);
+  background:
+    linear-gradient(180deg, rgba(183, 86, 43, 0.06), rgba(255, 255, 255, 0.78)),
+    rgba(255, 255, 255, 0.74);
+}
+
+.access-field-preview-head {
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.access-field-preview {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, max-content));
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.access-field-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.38rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 86, 43, 0.16);
+  background: rgba(183, 86, 43, 0.1);
+  color: var(--admin-brand-dark);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.access-field-chip:hover {
+  background: rgba(183, 86, 43, 0.16);
+}
+
+.access-field-advanced {
+  margin-top: 1rem;
+}
+
+.audit-summary-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.audit-control-shell,
+.audit-monitor-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.audit-control-shell {
+  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.8fr);
+  align-items: start;
+}
+
+.audit-control-form {
+  margin: 0;
+}
+
+.audit-signal-shell {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 1.05rem;
+  border-radius: 1.15rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.audit-monitor-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+  align-items: start;
+}
+
+.audit-stream-panel,
+.audit-detail-panel {
+  padding: 1rem;
+  border-radius: 1.2rem;
+  border: 1px solid var(--admin-line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.audit-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.audit-detail-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.audit-metadata {
+  margin: 0.75rem 0 0;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(27, 18, 14, 0.12);
+  background: rgba(27, 18, 14, 0.04);
+  color: var(--admin-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.audit-tip {
+  padding: 1rem 1.05rem;
+  border-radius: 1.15rem;
+  border: 1px solid rgba(183, 86, 43, 0.14);
+  background: rgba(255, 250, 244, 0.7);
 }
 
 .detail-label {
@@ -314,9 +721,29 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .create-step-shell {
+  .create-workspace,
+  .create-form-head,
+  .create-inline-head,
+  .create-form-footer,
+  .keys-toolbar,
+  .audit-control-shell,
+  .audit-monitor-grid,
+  .audit-summary-grid,
+  .access-field-assist,
+  .access-field-grid,
+  .access-field-header,
+  .key-detail-grid,
+  .result-meta-grid,
+  .secret-row {
+    grid-template-columns: 1fr;
+  }
+
+  .access-field-preview-head {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-signal-shell {
     flex-direction: column;
-    align-items: flex-start;
   }
 }
 

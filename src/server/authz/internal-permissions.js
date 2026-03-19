@@ -7,6 +7,7 @@ const INTERNAL_PERMISSIONS = Object.freeze({
   API_KEYS_UPDATE: 'api_keys:update',
   API_KEYS_ROTATE: 'api_keys:rotate',
   API_KEYS_REVOKE: 'api_keys:revoke',
+  API_KEYS_DELETE: 'api_keys:delete',
   AUDIT_LOGS_READ: 'audit_logs:read',
 });
 

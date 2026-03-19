@@ -13,7 +13,7 @@ export const VIEW_CONTENT = Object.freeze({
   },
   keys: {
     title: 'Manage Keys',
-    description: 'Inspect existing keys and execute rotate, revoke or reactivate flows.',
+    description: 'Inspect existing keys and execute rotate, revoke, reactivate or delete flows.',
   },
   audit: {
     title: 'Audit Logs',

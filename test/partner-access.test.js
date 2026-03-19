@@ -4,7 +4,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { API_KEY_SCOPES } = require('../lib/api-key-scopes');
-const { listPartnerApartmentsLive } = require('../lib/apartments/partner-apartment-service');
+const {
+  findPartnerApartmentLiveById,
+  listPartnerApartmentsLive,
+  listPartnerApartmentsLiveByCity,
+} = require('../lib/apartments/partner-apartment-service');
 const { projectApartment } = require('../lib/apartments/apartment-projector');
 const { buildPartnerApartmentAccessPolicy } = require('../lib/partners/partner-access-policy');
 
@@ -102,5 +106,54 @@ test('listPartnerApartmentsLive projects fetched apartments using partner access
         warmRent: 1200,
       },
     },
+  ]);
+});
+
+test('findPartnerApartmentLiveById returns one projected apartment when id matches', async () => {
+  const actor = {
+    partnerId: 'partner-a',
+    scopes: ['apartments:read'],
+    accessPolicy: {
+      apartments: {
+        fields: ['id', 'address.city'],
+      },
+    },
+  };
+
+  const result = await findPartnerApartmentLiveById(actor, 'apt-2', {
+    fetchApartments: async () => [
+      { id: 'apt-1', address: { city: 'Berlin' }, rent: { warmRent: 1200 } },
+      { id: 'apt-2', address: { city: 'Hamburg' }, rent: { warmRent: 1500 } },
+    ],
+  });
+
+  assert.deepEqual(result.apartment, {
+    id: 'apt-2',
+    address: { city: 'Hamburg' },
+  });
+});
+
+test('listPartnerApartmentsLiveByCity filters apartments case-insensitively before projection', async () => {
+  const actor = {
+    partnerId: 'partner-a',
+    scopes: ['apartments:read'],
+    accessPolicy: {
+      apartments: {
+        fields: ['id', 'rent.warmRent'],
+      },
+    },
+  };
+
+  const result = await listPartnerApartmentsLiveByCity(actor, 'berlin', {
+    fetchApartments: async () => [
+      { id: 'apt-1', address: { city: 'Berlin' }, rent: { warmRent: 1200 } },
+      { id: 'apt-2', address: { city: 'Hamburg' }, rent: { warmRent: 1500 } },
+      { id: 'apt-3', address: { city: 'berlin' }, rent: { warmRent: 1600 } },
+    ],
+  });
+
+  assert.deepEqual(result.apartments, [
+    { id: 'apt-1', rent: { warmRent: 1200 } },
+    { id: 'apt-3', rent: { warmRent: 1600 } },
   ]);
 });

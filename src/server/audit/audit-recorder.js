@@ -86,6 +86,20 @@ async function recordApiKeyUpdated(req, apiKey) {
   });
 }
 
+async function recordApiKeyDeleted(req, apiKey) {
+  return writeAuditLog({
+    actorUserId: getActorUserId(req),
+    action: 'api_key_deleted',
+    resourceType: 'api_key',
+    resourceId: apiKey.id,
+    ...getRequestMetadata(req),
+    metadata: {
+      partnerId: apiKey.partnerId,
+      keyPrefix: apiKey.keyPrefix,
+    },
+  });
+}
+
 async function recordApiKeyAuthFailed(req, rawKey, reason) {
   const parsed = parseApiKey(rawKey);
 
@@ -144,6 +158,7 @@ module.exports = {
   buildApiKeyScopeDeniedAuditEntry,
   recordApiKeyAuthFailed,
   recordApiKeyCreated,
+  recordApiKeyDeleted,
   recordApiKeyReactivated,
   recordApiKeyRevoked,
   recordApiKeyRotated,
